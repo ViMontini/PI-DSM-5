@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:despesa_digital/view/navbar.dart';
 import 'package:despesa_digital/view/drawer.dart';
-import 'package:despesa_digital/controller/utils.dart'; // Import for potential future use
+import 'package:despesa_digital/controller/divi_controller.dart';
 
 class Dividas extends StatefulWidget {
   @override
@@ -15,7 +15,6 @@ class _Dividas extends State<Dividas> {
   DateTime _focusedDay = DateTime.now();
   String _eventoSalvo = '';
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  //ListaDividas _listaDividas = ListaDividas(); // Comment out if not currently used
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +33,10 @@ class _Dividas extends State<Dividas> {
                 lastDay: DateTime.utc(2030, 3, 14),
                 focusedDay: _focusedDay,
                 calendarFormat: _calendarFormat,
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false, // Oculta o botão de formato
+                  titleCentered: true, // Centraliza o título
+                ),
                 onFormatChanged: (format) {
                   if (_calendarFormat != format) {
                     setState(() {
@@ -43,8 +46,6 @@ class _Dividas extends State<Dividas> {
                 },
                 onPageChanged: (focusedDay) {
                   _focusedDay = focusedDay;
-                  // Atualizar a lista de dívidas para o mês selecionado
-                  // _listaDividas = getListaDividasDoMes(_focusedDay);
                   setState(() {});
                 },
               ),
@@ -87,11 +88,11 @@ class _Dividas extends State<Dividas> {
             right: 20.0,
             child: FloatingActionButton(
               onPressed: () {
-                // Função para abrir o modal de adicionar dívida (implemente a lógica)
-                // ...
+                abrirModalAdicionarDivida(context, (valor, descricao) {
+
+                });
               },
               child: Icon(Icons.add),
-              backgroundColor: Colors.white70,
             ),
           ),
         ],

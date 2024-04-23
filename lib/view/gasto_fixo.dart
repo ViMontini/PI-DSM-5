@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:despesa_digital/view/navbar.dart';
 import 'package:despesa_digital/view/drawer.dart';
+import 'package:despesa_digital/controller/gafi_controller.dart';
 
 class GastoFixo extends StatefulWidget {
   @override
@@ -19,26 +20,26 @@ class _GastoFixo extends State<GastoFixo> {
       backgroundColor: Colors.tealAccent.withOpacity(0.4),
       body: Stack(
         children: [
-          // Conteúdo da página
-          Column(
-            children: [
-              SizedBox(height: 20.0),
-            ],
-          ),
           Positioned(
             right: 20.0,
             bottom: 20.0,
             child: FloatingActionButton(
               onPressed: () {
-                // Função para abrir o modal de adicionar gasto fixo (implemente a lógica)
-                // ...
+                // Função para abrir o modal de adicionar meta (similar a movimentacoes.dart)
+                abrirModalAdicionarGastoFixo(context, (titulo, descricao) {
+                  // Lógica para adicionar a nova meta (arrume depois)
+                  // ...
+                  setState(() {}); // Atualizar a lista de metas (se necessário)
+                });
               },
               child: Icon(Icons.add),
-              backgroundColor: Colors.white70,
             ),
           ),
         ],
       ),
     );
   }
+
 }
+
+

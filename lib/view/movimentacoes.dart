@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:despesa_digital/view/navbar.dart';
 import 'package:despesa_digital/view/drawer.dart';
-import 'package:despesa_digital/controller/utils.dart';
-import 'package:despesa_digital/model/movimentacao.dart'; // Importe sua classe MovimentacaoMonetaria aqui
+import 'package:despesa_digital/controller/movi_controller.dart';
+import 'package:despesa_digital/model/movimentacao.dart';
 
 class Movimentacoes extends StatefulWidget {
   @override
