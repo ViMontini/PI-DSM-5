@@ -4,6 +4,7 @@ import 'package:despesa_digital/view/navbar.dart';
 import 'package:despesa_digital/view/drawer.dart';
 import 'package:despesa_digital/controller/movi_controller.dart';
 import 'package:despesa_digital/model/movimentacao.dart';
+import 'package:despesa_digital/database/movimentacao_db.dart';
 
 class Movimentacoes extends StatefulWidget {
   @override
@@ -14,9 +15,15 @@ class _Movimentacoes extends State<Movimentacoes> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  String _eventoSalvo = '';
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  ListaMovimentacoes _listaMovimentacoes = ListaMovimentacoes();
+  Future<List<Movimentacao>>? futureMovi;
+  final MoviController moviController = MoviController();
+
+  @override
+  void initState() {
+    super.initState();
+    futureMovi = MovimentacaoDB().fetchAll(); // Fetch metas on initialization
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,56 +37,55 @@ class _Movimentacoes extends State<Movimentacoes> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: TableCalendar(
-                  firstDay: DateTime.utc(2010, 10, 16),
-                  lastDay: DateTime.utc(2030, 3, 14),
-                  focusedDay: _focusedDay,
-                  calendarFormat: _calendarFormat,
-                  selectedDayPredicate: (day) {
-                    return isSameDay(_selectedDay, day);
-                  },
-                  onDaySelected: (selectedDay, focusedDay) {
-                    if (!isSameDay(_selectedDay, selectedDay)) {
-                      setState(() {
-                        _selectedDay = selectedDay;
-                        _focusedDay = focusedDay;
-                      });
-                    }
-                  },
-                  onFormatChanged: (format) {
-                    if (_calendarFormat != format) {
-                      setState(() {
-                        _calendarFormat = format;
-                      });
-                    }
-                  },
-                  onPageChanged: (focusedDay) {
-                    _focusedDay = focusedDay;
-                  },
-                ),
+              TableCalendar(
+                firstDay: DateTime.utc(2010, 10, 16),
+                lastDay: DateTime.utc(2030, 3, 14),
+                focusedDay: _focusedDay,
+                calendarFormat: _calendarFormat,
+                selectedDayPredicate: (day) {
+                  return isSameDay(_selectedDay, day);
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  if (!isSameDay(_selectedDay, selectedDay)) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  }
+                },
+                onFormatChanged: (format) {
+                  if (_calendarFormat != format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  }
+                },
+                onPageChanged: (focusedDay) {
+                  _focusedDay = focusedDay;
+                },
               ),
               SizedBox(height: 20.0),
               SizedBox(height: 10.0),
               Expanded(
-                child: ListView.builder(
-                  itemCount: _listaMovimentacoes.movimentacoes.length,
-                  itemBuilder: (context, index) {
-                    var movimentacao = _listaMovimentacoes.movimentacoes[index];
-                    if (isSameDay(movimentacao.data, _selectedDay)) {
-                      return Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Card(
-                          elevation: 4.0,
-                          child: ListTile(
-                            title: Text('Valor: ${movimentacao.valor}'),
-                            subtitle: Text('Descrição: ${movimentacao.descricao}'),
-                          ),
-                        ),
+                child: FutureBuilder<List<Movimentacao>>(
+                  future: futureMovi,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final List<Movimentacao> movis = snapshot.data!;
+                      return ListView.builder(
+                        itemCount: movis.length,
+                        itemBuilder: (context, index) {
+                          final movi = movis[index];
+                          // Substituição da construção do ListTile pelo método do MetaController
+                          return moviController.construirMoviListTile(context, movi);
+                        },
                       );
-                    } else {
-                      return Container(); // Retorna um container vazio se a movimentação não for para o dia selecionado
+                    } else if (snapshot.hasError) {
+                      print(snapshot.error);
+                      return Center(child: Text('Erro ao carregar metas'));
                     }
+                    // Display a loading indicator while data is being fetched
+                    return Center(child: CircularProgressIndicator());
                   },
                 ),
               ),
@@ -87,15 +93,22 @@ class _Movimentacoes extends State<Movimentacoes> {
           ),
           // Botão flutuante para adicionar movimentação
           Positioned(
-            bottom: 20.0,
             right: 20.0,
+            bottom: 20.0,
             child: FloatingActionButton(
               onPressed: () {
-                // Chame a função do utils.dart para abrir o modal de adicionar movimentação
-                abrirModalAdicionarMovimentacao(context, (valor, descricao) {
-                  // Aqui você pode adicionar a lógica para adicionar a movimentação com o valor e a descrição fornecidos
-                  _listaMovimentacoes.adicionarMovimentacao(data: _selectedDay!, valor: valor, descricao: descricao);
-                  setState(() {}); // Atualizar o estado para refletir a adição da movimentação
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AdicionarMoviPage(selectedDay: _selectedDay); // Abre o modal para adicionar uma nova meta
+                  },
+                ).then((value) {
+                  // Atualiza a lista de metas se uma nova meta foi adicionada
+                  if (value == true) {
+                    setState(() {
+                      futureMovi = MovimentacaoDB().fetchAll();
+                    });
+                  }
                 });
               },
               child: Icon(Icons.add),

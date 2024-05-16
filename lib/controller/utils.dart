@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 String getMonthName(int month) {
   switch (month) {
@@ -41,37 +42,17 @@ String getGreeting(int hour) {
   }
 }
 
-Future<String?> adicionarEvento(BuildContext context, DateTime selectedDay) async {
-  String? evento;
-  await showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text('Adicionar Evento'),
-        content: TextField(
-          onChanged: (value) {
-            evento = value;
-          },
-          decoration: InputDecoration(hintText: 'Digite o evento'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, evento); // Retorna o evento adicionado ao fechar o dialog
-            },
-            child: Text('Salvar'),
-          ),
-        ],
-      );
-    },
-  );
-  return evento; // Retorna o evento adicionado
+String formatarData(String dataString) {
+  // Formato de entrada da string de data
+  final DateFormat formatoEntrada = DateFormat('yyyy-MM-dd HH:mm:ss');
+  // Formato de saída desejado
+  final DateFormat formatoSaida = DateFormat('dd/MM/yyyy');
+
+  // Converter a string de data para DateTime
+  final DateTime data = formatoEntrada.parse(dataString);
+
+  // Formatar a data para o formato desejado
+  return formatoSaida.format(data);
 }
 
 

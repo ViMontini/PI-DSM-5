@@ -4,6 +4,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:despesa_digital/view/navbar.dart';
 import 'package:despesa_digital/view/drawer.dart';
 import 'package:despesa_digital/controller/divi_controller.dart';
+import 'package:despesa_digital/model/divida.dart'; // Importe a classe Divida
+import 'package:despesa_digital/database/divida_db.dart'; // Importe a classe DividaDB
 
 class Dividas extends StatefulWidget {
   @override
@@ -13,8 +15,15 @@ class Dividas extends StatefulWidget {
 class _Dividas extends State<Dividas> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
-  String _eventoSalvo = '';
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late Future<List<Divida>> futureDividas; // Futuro de lista de dívidas
+  final DividaController dividaController = DividaController();
+
+  @override
+  void initState() {
+    super.initState();
+    futureDividas = DividaDB().fetchAll(); // Inicialização do futuro de lista de dívidas
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,21 +71,25 @@ class _Dividas extends State<Dividas> {
               ),
               SizedBox(height: 10.0),
               Expanded(
-                child: ListView.builder(
-                  //itemCount: _listaDividas.dividas.length, // Comment out if not currently used
-                  itemBuilder: (context, index) {
-                    //var divida = _listaDividas.dividas[index]; // Comment out if not currently used
-                    return Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Card(
-                        elevation: 4.0,
-                        child: ListTile(
-                          title: Text('Valor:'), // Replace with actual value display
-                          subtitle: Text('Vencimento:'), // Replace with actual due date display
-                          trailing: Text('Status'), // Replace with actual status display
-                        ),
-                      ),
-                    );
+                child: FutureBuilder<List<Divida>>(
+                  future: futureDividas,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final List<Divida> dividas = snapshot.data!;
+                      return ListView.builder(
+                        itemCount: dividas.length,
+                        itemBuilder: (context, index) {
+                          final divida = dividas[index];
+                          // Substituição da construção do ListTile pelo método do MetaController
+                          return dividaController.construirDividaListTile(context, divida);
+                        },
+                      );
+                    } else if (snapshot.hasError) {
+                      print(snapshot.error);
+                      return Center(child: Text('Erro ao carregar metas'));
+                    }
+                    // Display a loading indicator while data is being fetched
+                    return Center(child: CircularProgressIndicator());
                   },
                 ),
               ),
@@ -88,8 +101,18 @@ class _Dividas extends State<Dividas> {
             right: 20.0,
             child: FloatingActionButton(
               onPressed: () {
-                abrirModalAdicionarDivida(context, (valor, descricao) {
-
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AdicionarDividaPage(); // Abre o modal para adicionar uma nova meta
+                  },
+                ).then((value) {
+                  // Atualiza a lista de metas se uma nova meta foi adicionada
+                  if (value == true) {
+                    setState(() {
+                      futureDividas = DividaDB().fetchAll();
+                    });
+                  }
                 });
               },
               child: Icon(Icons.add),
@@ -99,5 +122,4 @@ class _Dividas extends State<Dividas> {
       ),
     );
   }
-
 }

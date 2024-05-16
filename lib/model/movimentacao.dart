@@ -1,29 +1,32 @@
-import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class MovimentacaoMonetaria {
-  final DateTime data;
-  final double valor;
-  final String descricao;
+class Movimentacao {
+   final int id;
+   final String data;
+   final int tipo;
+   final double valor;
+   final String categoria;
+   final String? descricao;
+   final int recorrente;
 
-  MovimentacaoMonetaria({
+  Movimentacao({
+    required this.id,
     required this.data,
+    required this.tipo,
     required this.valor,
-    required this.descricao,
+    required this.categoria,
+    this.descricao,
+    required this.recorrente,
   });
-}
 
-class ListaMovimentacoes {
-  List<MovimentacaoMonetaria> movimentacoes = [];
+   factory Movimentacao.fromSqfliteDatabase(Map<String, dynamic> map) => Movimentacao(
+     id: map['id']?.toInt() ?? 0,
+     data: map['data'] ?? '',
+     tipo: map['tipo'] ?? '',
+     valor: map['valor'] ?? 0,
+     categoria: map['categoria'] ?? '',
+     descricao: map['descricao'] ?? '',
+     recorrente: map['recorrente'] ?? 0,
+   );
 
-  void adicionarMovimentacao({
-    required DateTime data,
-    required double valor,
-    required String descricao,
-  }) {
-    movimentacoes.add(MovimentacaoMonetaria(
-      data: data,
-      valor: valor,
-      descricao: descricao,
-    ));
-  }
 }

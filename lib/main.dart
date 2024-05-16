@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/date_symbol_data_file.dart';
-import 'package:intl/intl.dart';
 import 'view/home_page.dart';
-
+import 'package:despesa_digital/controller/database_helper.dart';
 
 void main() {
-  runApp(MyApp());
+  WidgetsFlutterBinding.ensureInitialized(); // Certifique-se de que os plugins do Flutter estão inicializados
+    runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
