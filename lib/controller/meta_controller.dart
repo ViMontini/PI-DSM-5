@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:despesa_digital/controller/utils.dart';
 import '../model/meta.dart';
 import '../view/metas.dart';
+import 'package:percent_indicator/percent_indicator.dart';
 
 
 class AdicionarMetaPage extends StatefulWidget {
@@ -69,7 +70,7 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
             String titulo = _tituloController.text;
             String descricao = _descricaoController.text;
             double valorTotal = double.parse(_valorController.text);
-            String dataLimite = DateFormat('yyyy-MM-dd HH:mm:ss').format(_dataLimite); // Use o formato desejado aqui
+            String dataLimite = DateFormat('yyyy-MM-dd').format(_dataLimite); // Use o formato desejado aqui
 
             // Criando a nova meta no banco de dados
             await MetaDB().create(
@@ -96,17 +97,24 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
   }
 }
 
-
 class MetaController {
   final MetaDB _metaDB = MetaDB();
-  final Metas metas = Metas();
-
 
   // Método para exibir os detalhes da meta em uma caixa de diálogo
-  void mostrarDetalhesMeta(BuildContext context, Meta meta,) {
+  void mostrarDetalhesMeta(BuildContext context, Meta meta, VoidCallback atualizarMetas) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+
+        DateTime? data;
+        String dataFormatada = 'Data não disponível';
+
+        // Verificar se meta.data_limite não é nula
+        if (meta.data_limite != null) {
+          data = DateTime.parse(meta.data_limite!);
+          dataFormatada = DateFormat('dd/MM/yyyy').format(data);
+        }
+
         return AlertDialog(
           title: Text(meta.titulo),
           content: Column(
@@ -114,8 +122,9 @@ class MetaController {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Descrição: ${meta.descricao}'),
-              Text('Valor Total:  R${meta.valor_total}'),
-              Text('Data Limite: ${meta.data_limite}'),
+              Text('Valor Total: R\$${meta.valor_total.toStringAsFixed(2)}'),
+              Text('Valor Guardado: R\$${meta.valor_guardado.toStringAsFixed(2)}'),
+              Text('Data Limite: $dataFormatada'),
             ],
           ),
           actions: <Widget>[
@@ -126,6 +135,7 @@ class MetaController {
                 // Fechar a caixa de diálogo
                 Navigator.of(context).pop();
                 // Atualizar a lista de metas na página
+                atualizarMetas();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Meta excluída com sucesso!')),
                 );
@@ -145,17 +155,53 @@ class MetaController {
   }
 
   // Método para construir um ListTile para exibir uma meta
-  Widget construirMetaListTile(BuildContext context, Meta meta) {
+  Widget construirMetaListTile(BuildContext context, Meta meta, VoidCallback atualizarMetas) {
+    double progresso = meta.valor_guardado / meta.valor_total;  // Calcule o progresso da meta
+
     return GestureDetector(
       onTap: () {
-        mostrarDetalhesMeta(context, meta);
+        mostrarDetalhesMeta(context, meta, atualizarMetas);
       },
       child: Card(
         elevation: 4.0,
-        child: ListTile(
-          title: Text(meta.titulo),
-          subtitle: Text(meta.descricao),
-          trailing: Text('Progresso'), // Atualize isso com base nos dados da sua meta
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Text(
+                  meta.titulo.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.0),
+              Text(meta.descricao),
+              SizedBox(height: 8.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('R\$${meta.valor_guardado.toStringAsFixed(2)}'),
+                  Text('R\$${meta.valor_total.toStringAsFixed(2)}'),
+                ],
+              ),
+              SizedBox(height: 8.0),
+              LinearPercentIndicator(
+                lineHeight: 18.0,
+                percent: progresso,
+                backgroundColor: Colors.grey,
+                progressColor: Colors.green,
+                barRadius: Radius.circular(10),
+                center: Text(('${(progresso * 100).toStringAsFixed(1)}%'),
+                  style: TextStyle(
+                  fontSize: 13.0,
+                  color: Colors.black87,),),
+              ),
+            ],
+          ),
         ),
       ),
     );

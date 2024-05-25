@@ -10,9 +10,15 @@ class SaldoDB{
   Future<void> createTable(Database database) async {
     await database.execute("""CREATE TABLE IF NOT EXISTS $tableName (
     "id" INTEGER NOT NULL, 
-    "saldo" REAL NOT NULL DEFAULT 0,
+    "saldo" REAL NOT NULL,
     PRIMARY KEY ("id" autoincrement)
-    );""");
+    );
+  """);
+  }
+
+  Future<void> createSaldo(Database database) async {
+    await database.execute("""INSERT INTO $tableName (saldo) VALUES (0.0);;
+  """);
   }
 
   Future<int> create({required double saldo}) async {

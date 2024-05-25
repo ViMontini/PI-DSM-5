@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'view/home_page.dart';
-import 'package:despesa_digital/controller/database_helper.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized(); // Certifique-se de que os plugins do Flutter estão inicializados

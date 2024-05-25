@@ -1,7 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:despesa_digital/database/database_service.dart';
 import 'package:despesa_digital/model/divida.dart';
-import 'package:intl/intl.dart';
 
 class DividaDB {
   final tableName = 'dividas';
@@ -15,6 +14,7 @@ class DividaDB {
     "data_inicio" TEXT NOT NULL, 
     "data_vencimento" TEXT NOT NULL,
     "num_parcela" INTEGER NOT NULL,
+    "num_parcela_paga" INTEGER NOT NULL DEFAULT 0,
     "valor_parcela" REAL NOT NULL,
     "status" INTEGER NOT NULL,
     PRIMARY KEY ("id" autoincrement)
@@ -22,11 +22,11 @@ class DividaDB {
   }
 
   Future<int> create({required String titulo, required double valor_total, required String data_inicio, required String data_vencimento,
-  required int num_parcela, required double valor_parcela, required int status}) async {
+    required int num_parcela,  required double num_parcela_paga, required double valor_parcela, required int status}) async {
     final database = await DatabaseService().database;
     return await database.rawInsert(
-      '''INSERT INTO $tableName (titulo, valor_total, data_inicio, data_vencimento, num_parcela, valor_parcela, status) VALUES (?, ?, ?, ?, ?, ?, ?)''',
-      [titulo, valor_total, data_inicio, data_vencimento, num_parcela, valor_parcela, status],
+      '''INSERT INTO $tableName (titulo, valor_total, data_inicio, data_vencimento, num_parcela, num_parcela_paga, valor_parcela, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+      [titulo, valor_total, data_inicio, data_vencimento, num_parcela, num_parcela_paga, valor_parcela, status],
     );
   }
 
@@ -44,7 +44,7 @@ class DividaDB {
   }
 
   Future<int> update({required int id, String? titulo, double? valor_total, double? valor_pago, String? data_inicio, String? data_vencimento,
-    int? num_parcela, double? valor_parcela, int? status}) async {
+    int? num_parcela, int? num_parcela_paga, double? valor_parcela, int? status}) async {
     final database = await DatabaseService().database;
     return await database.update(
       tableName,
@@ -55,6 +55,7 @@ class DividaDB {
         'data_inicio': data_inicio,
         'data_vencimento': data_vencimento,
         'num_parcela': num_parcela,
+        'num_parcela_paga': num_parcela,
         'valor_parcela': valor_parcela,
         'status': status,
       },
@@ -69,4 +70,11 @@ class DividaDB {
     await database.rawDelete('''DELETE FROM $tableName WHERE id = ? ''', [id]);
   }
 
+  Future<List<Divida>> fetchByDatas(String data) async {
+    final database = await DatabaseService().database;
+    final dividas = await database.rawQuery(
+      '''SELECT * FROM $tableName WHERE data_inicio >= ? AND data_vencimento <= ?''', [data, data],
+    );
+    return dividas.map((divida) => Divida.fromSqfliteDatabase(divida)).toList();
+  }
 }

@@ -7,7 +7,7 @@ class Movimentacao {
    final double valor;
    final String categoria;
    final String? descricao;
-   final int recorrente;
+   final int? meta_id;
 
   Movimentacao({
     required this.id,
@@ -16,7 +16,7 @@ class Movimentacao {
     required this.valor,
     required this.categoria,
     this.descricao,
-    required this.recorrente,
+    this.meta_id,
   });
 
    factory Movimentacao.fromSqfliteDatabase(Map<String, dynamic> map) => Movimentacao(
@@ -26,7 +26,7 @@ class Movimentacao {
      valor: map['valor'] ?? 0,
      categoria: map['categoria'] ?? '',
      descricao: map['descricao'] ?? '',
-     recorrente: map['recorrente'] ?? 0,
+     meta_id: map['meta_id'] ?? 0,
    );
 
 }

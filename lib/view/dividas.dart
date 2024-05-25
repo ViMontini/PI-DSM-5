@@ -6,6 +6,7 @@ import 'package:despesa_digital/view/drawer.dart';
 import 'package:despesa_digital/controller/divi_controller.dart';
 import 'package:despesa_digital/model/divida.dart'; // Importe a classe Divida
 import 'package:despesa_digital/database/divida_db.dart'; // Importe a classe DividaDB
+import 'package:intl/intl.dart';
 
 class Dividas extends StatefulWidget {
   @override
@@ -16,13 +17,26 @@ class _Dividas extends State<Dividas> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  late Future<List<Divida>> futureDividas; // Futuro de lista de dívidas
+  late Future<List<Divida>> futureDividas;
   final DividaController dividaController = DividaController();
 
   @override
   void initState() {
     super.initState();
-    futureDividas = DividaDB().fetchAll(); // Inicialização do futuro de lista de dívidas
+    futureDividas = DividaDB().fetchByDatas(DateFormat('yyyy-MM-dd').format(_focusedDay));
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+    setState(() {
+      _focusedDay = focusedDay;
+      futureDividas = DividaDB().fetchByDatas(DateFormat('yyyy-MM-dd').format(_focusedDay));
+    });
+  }
+
+  void _refreshDividas() {
+    setState(() {
+      futureDividas = DividaDB().fetchByDatas(DateFormat('yyyy-MM-dd').format(_focusedDay));
+    });
   }
 
   @override
@@ -42,10 +56,7 @@ class _Dividas extends State<Dividas> {
                 lastDay: DateTime.utc(2030, 3, 14),
                 focusedDay: _focusedDay,
                 calendarFormat: _calendarFormat,
-                headerStyle: HeaderStyle(
-                  formatButtonVisible: false, // Oculta o botão de formato
-                  titleCentered: true, // Centraliza o título
-                ),
+                onDaySelected: _onDaySelected,
                 onFormatChanged: (format) {
                   if (_calendarFormat != format) {
                     setState(() {
@@ -55,19 +66,7 @@ class _Dividas extends State<Dividas> {
                 },
                 onPageChanged: (focusedDay) {
                   _focusedDay = focusedDay;
-                  setState(() {});
                 },
-              ),
-              SizedBox(height: 20.0),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  'Dívidas para ${_focusedDay.month}/${_focusedDay.year}',
-                  style: TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
               SizedBox(height: 10.0),
               Expanded(
@@ -80,22 +79,19 @@ class _Dividas extends State<Dividas> {
                         itemCount: dividas.length,
                         itemBuilder: (context, index) {
                           final divida = dividas[index];
-                          // Substituição da construção do ListTile pelo método do MetaController
-                          return dividaController.construirDividaListTile(context, divida);
+                          return dividaController.construirDividaListTile(context, divida, _refreshDividas);
                         },
                       );
                     } else if (snapshot.hasError) {
                       print(snapshot.error);
-                      return Center(child: Text('Erro ao carregar metas'));
+                      return Center(child: Text('Erro ao carregar dívidas'));
                     }
-                    // Display a loading indicator while data is being fetched
                     return Center(child: CircularProgressIndicator());
                   },
                 ),
               ),
             ],
           ),
-          // Botão flutuante para adicionar dívida
           Positioned(
             bottom: 20.0,
             right: 20.0,
@@ -104,14 +100,11 @@ class _Dividas extends State<Dividas> {
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
-                    return AdicionarDividaPage(); // Abre o modal para adicionar uma nova meta
+                    return AdicionarDividaPage();
                   },
                 ).then((value) {
-                  // Atualiza a lista de metas se uma nova meta foi adicionada
                   if (value == true) {
-                    setState(() {
-                      futureDividas = DividaDB().fetchAll();
-                    });
+                    _refreshDividas();
                   }
                 });
               },

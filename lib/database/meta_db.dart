@@ -33,7 +33,6 @@ class MetaDB{
       return metas.map((meta) => Meta.fromSqfliteDatabase(meta)).toList();
   }
 
-
   Future<Meta> fetchById(int id) async {
     final database = await DatabaseService().database;
     final meta = await database.rawQuery('''SELECT * from $tableName WHERE id = ?''', [id]);

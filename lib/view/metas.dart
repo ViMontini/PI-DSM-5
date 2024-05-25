@@ -22,6 +22,12 @@ class _Metas extends State<Metas> {
     futureMetas = MetaDB().fetchAll(); // Fetch metas on initialization
   }
 
+  void _refreshMetas() {
+    setState(() {
+      futureMetas = MetaDB().fetchAll();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,7 +54,12 @@ class _Metas extends State<Metas> {
                         itemBuilder: (context, index) {
                           final meta = metas[index];
                           // Substituição da construção do ListTile pelo método do MetaController
-                          return metaController.construirMetaListTile(context, meta);
+                          return Column(
+                            children: [
+                              metaController.construirMetaListTile(context, meta, _refreshMetas),
+                              SizedBox(height: 5.0), // Espaço de 16 pixels entre os cards
+                            ],
+                          );
                         },
                       );
                     } else if (snapshot.hasError) {

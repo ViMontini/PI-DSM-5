@@ -52,7 +52,7 @@ class CustomDrawer extends StatelessWidget {
           ListTile(
             title: Text('Gastos Fixos'),
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => GastoFixo()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => GastoFixos()));
             },
           ),
           ListTile(

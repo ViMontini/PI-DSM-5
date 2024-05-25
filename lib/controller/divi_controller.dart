@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../database/divida_db.dart';
 import '../model/divida.dart';
 import '../view/dividas.dart';
+import 'package:intl/intl.dart';
 
 class AdicionarDividaPage extends StatefulWidget {
   @override
@@ -58,7 +59,7 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
               title: Text('Data de Fim'),
               subtitle: Text(_dataVenc != null
                   ? '${_dataVenc.day}/${_dataVenc.month}/${_dataVenc.year}'
-                  : 'Selecione a data de inicio'),
+                  : 'Selecione a data de Fim'),
               onTap: () => _selecionarData(context),
             ),
             TextField(
@@ -79,8 +80,8 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
           onPressed: () async {
             String titulo = _tituloController.text;
             double valor_total = double.parse(_valorTotController.text);
-            String data_inicio = _dataInicio.toIso8601String(); // Use o formato desejado aqui
-            String data_venc = _dataVenc.toIso8601String();
+            String data_inicio = DateFormat('yyyy-MM-dd').format(_dataInicio);
+            String data_venc = DateFormat('yyyy-MM-dd').format(_dataVenc);
             int num_parcela = int.parse(_numParController.text);
             double valor_parcela = double.parse(_valorParController.text);
 
@@ -94,6 +95,7 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
               data_inicio: data_inicio,
               data_vencimento: data_venc,
               num_parcela: num_parcela,
+              num_parcela_paga: 0,
               valor_parcela: valor_parcela,
               status: status,
             );
@@ -118,18 +120,26 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
 class DividaController {
   final DividaDB _dividaDB = DividaDB();
 
-  void mostrarDetalhesDivida(BuildContext context, Divida divida) {
+  void mostrarDetalhesDivida(BuildContext context, Divida divida, VoidCallback onDelete) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+
+        DateTime dataInicio = DateTime.parse(divida.data_inicio);
+        DateTime dataVencimento = DateTime.parse(divida.data_vencimento);
+        String dataInicioFormatada = DateFormat('dd/MM/yyyy').format(dataInicio);
+        String dataVencimentoFormatada = DateFormat('dd/MM/yyyy').format(dataVencimento);
+
         return AlertDialog(
-          title: Text(divida.titulo),
+          title: Text(divida.titulo.toUpperCase()),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Valor Total: R\$${divida.valor_total}'),
-              Text('Data de Vencimento: ${divida.data_vencimento}'),
+              Text('Valor Total: R\$${divida.valor_total.toStringAsFixed(2)}'),
+              Text('Data de Início: $dataInicioFormatada'),
+              Text('Data de Vencimento: $dataVencimentoFormatada'),
+              Text('Parcelas pagas: ${divida.num_parcela_paga}/${divida.num_parcela}'),
             ],
           ),
           actions: <Widget>[
@@ -137,6 +147,7 @@ class DividaController {
               onPressed: () async {
                 await _dividaDB.delete(divida.id);
                 Navigator.of(context).pop();
+                onDelete();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Dívida excluída com sucesso!')),
                 );
@@ -155,16 +166,16 @@ class DividaController {
     );
   }
 
-  Widget construirDividaListTile(BuildContext context, Divida divida) {
+  Widget construirDividaListTile(BuildContext context, Divida divida, VoidCallback onDelete) {
     return GestureDetector(
       onTap: () {
-        mostrarDetalhesDivida(context, divida);
+        mostrarDetalhesDivida(context, divida, onDelete);
       },
       child: Card(
         elevation: 4.0,
         child: ListTile(
-          title: Text(divida.titulo),
-          subtitle: Text('Valor Total: ${divida.valor_total.toString()}'),
+          title: Text(divida.titulo.toUpperCase()),
+          subtitle: Text('Valor Total: R\$${divida.valor_total.toStringAsFixed(2)}'),
         ),
       ),
     );

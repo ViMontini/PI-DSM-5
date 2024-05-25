@@ -5,6 +5,7 @@ import 'package:despesa_digital/view/drawer.dart';
 import 'package:despesa_digital/controller/movi_controller.dart';
 import 'package:despesa_digital/model/movimentacao.dart';
 import 'package:despesa_digital/database/movimentacao_db.dart';
+import 'package:intl/intl.dart';
 
 class Movimentacoes extends StatefulWidget {
   @override
@@ -18,11 +19,29 @@ class _Movimentacoes extends State<Movimentacoes> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   Future<List<Movimentacao>>? futureMovi;
   final MoviController moviController = MoviController();
+  bool _isVisible = false; // Estado para controlar a visibilidade dos botões
 
   @override
   void initState() {
     super.initState();
-    futureMovi = MovimentacaoDB().fetchAll(); // Fetch metas on initialization
+    _selectedDay = _focusedDay;
+    futureMovi = MovimentacaoDB().fetchByData(DateFormat('yyyy-MM-dd').format(_selectedDay!));
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+    if (!isSameDay(_selectedDay, selectedDay)) {
+      setState(() {
+        _selectedDay = selectedDay;
+        _focusedDay = focusedDay;
+        futureMovi = MovimentacaoDB().fetchByData(DateFormat('yyyy-MM-dd').format(_selectedDay!));
+      });
+    }
+  }
+
+  void _refreshMovis() {
+    setState(() {
+      futureMovi = MovimentacaoDB().fetchByData(DateFormat('yyyy-MM-dd').format(_focusedDay));
+    });
   }
 
   @override
@@ -45,14 +64,7 @@ class _Movimentacoes extends State<Movimentacoes> {
                 selectedDayPredicate: (day) {
                   return isSameDay(_selectedDay, day);
                 },
-                onDaySelected: (selectedDay, focusedDay) {
-                  if (!isSameDay(_selectedDay, selectedDay)) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                  }
-                },
+                onDaySelected: _onDaySelected,
                 onFormatChanged: (format) {
                   if (_calendarFormat != format) {
                     setState(() {
@@ -76,42 +88,127 @@ class _Movimentacoes extends State<Movimentacoes> {
                         itemCount: movis.length,
                         itemBuilder: (context, index) {
                           final movi = movis[index];
-                          // Substituição da construção do ListTile pelo método do MetaController
-                          return moviController.construirMoviListTile(context, movi);
+                          return moviController.construirMoviListTile(context, movi , _refreshMovis);
                         },
                       );
                     } else if (snapshot.hasError) {
                       print(snapshot.error);
-                      return Center(child: Text('Erro ao carregar metas'));
+                      return Center(child: Text('Erro ao carregar movimentações'));
                     }
-                    // Display a loading indicator while data is being fetched
                     return Center(child: CircularProgressIndicator());
                   },
                 ),
               ),
             ],
           ),
-          // Botão flutuante para adicionar movimentação
           Positioned(
             right: 20.0,
             bottom: 20.0,
-            child: FloatingActionButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AdicionarMoviPage(selectedDay: _selectedDay); // Abre o modal para adicionar uma nova meta
-                  },
-                ).then((value) {
-                  // Atualiza a lista de metas se uma nova meta foi adicionada
-                  if (value == true) {
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (_isVisible) // Exibe os botões se isVisible for true
+                  ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AdicionarMoviPage(selectedDay: _selectedDay);
+                        },
+                      ).then((value) {
+                        if (value == true) {
+                          setState(() {
+                            futureMovi = MovimentacaoDB().fetchByData(DateFormat('yyyy-MM-dd').format(_selectedDay!));
+                          });
+                        }
+                      });
+                      // Após clicar, torna os botões invisíveis novamente
+                      setState(() {
+                        _isVisible = false;
+                      });
+                    },
+                    child: Text('Adicionar Movimentação',
+                        style: TextStyle(color: Colors.black)),
+                  ),
+                SizedBox(height: 10), // Adicione um espaço entre os botões flutuantes
+                if (_isVisible) // Exibe os botões se isVisible for true
+                  ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return GuardarSaldo(selectedDay: _selectedDay);
+                        },
+                      ).then((value) {
+                        if (value == true) {
+                          setState(() {
+                            futureMovi = MovimentacaoDB().fetchByData(DateFormat('yyyy-MM-dd').format(_selectedDay!));
+                          });
+                        }
+                      });
+                      setState(() {
+                        _isVisible = false;
+                      });
+                    },
+                    child: Text('Guardar saldo',
+                        style: TextStyle(color: Colors.black)),
+                  ),
+                SizedBox(height: 10),
+                if (_isVisible) // Exibe os botões se isVisible for true
+                  ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return PagarConta(selectedDay: _selectedDay);
+                        },
+                      ).then((value) {
+                        if (value == true) {
+                          setState(() {
+                            futureMovi = MovimentacaoDB().fetchByData(DateFormat('yyyy-MM-dd').format(_selectedDay!));
+                          });
+                        }
+                      });
+                      setState(() {
+                        _isVisible = false;
+                      });
+                    },
+                    child: Text('Pagar Conta',
+                        style: TextStyle(color: Colors.black)),
+                  ),
+                SizedBox(height: 10),
+                if (_isVisible) // Exibe os botões se isVisible for true
+                  ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return PagarDivida(selectedDay: _selectedDay);
+                        },
+                      ).then((value) {
+                        if (value == true) {
+                          setState(() {
+                            futureMovi = MovimentacaoDB().fetchByData(DateFormat('yyyy-MM-dd').format(_selectedDay!));
+                          });
+                        }
+                      });
+                      setState(() {
+                        _isVisible = false;
+                      });
+                    },
+                    child: Text('Pagar Dívida',
+                        style: TextStyle(color: Colors.black)),
+                  ),
+                SizedBox(height: 10),
+                FloatingActionButton(
+                  onPressed: () {
                     setState(() {
-                      futureMovi = MovimentacaoDB().fetchAll();
+                      _isVisible = !_isVisible; // Alterna a visibilidade dos botões
                     });
-                  }
-                });
-              },
-              child: Icon(Icons.add),
+                  },
+                  child: Icon(Icons.add),
+                ),
+              ],
             ),
           ),
         ],

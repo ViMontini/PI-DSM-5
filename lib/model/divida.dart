@@ -9,6 +9,7 @@ class Divida {
   final String data_inicio;
   final String data_vencimento;
   final int num_parcela;
+  final int num_parcela_paga;
   final double valor_parcela;
   final int status;
 
@@ -20,6 +21,7 @@ class Divida {
     required this.data_inicio,
     required this.data_vencimento,
     required this.num_parcela,
+    required this.num_parcela_paga,
     required this.valor_parcela,
     required this.status
   });
@@ -32,6 +34,7 @@ class Divida {
     data_inicio: map['data_inicio'] ?? '',
     data_vencimento: map['data_vencimento'],
     num_parcela: map['num_parcela'],
+    num_parcela_paga: map['num_parcela_paga'],
     valor_parcela: map['valor_parcela'],
     status: map['status'],
   );

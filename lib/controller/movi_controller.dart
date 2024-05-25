@@ -1,11 +1,19 @@
+import 'package:despesa_digital/database/divida_db.dart';
+import 'package:despesa_digital/database/gasto_db.dart';
+import 'package:despesa_digital/model/divida.dart';
+import 'package:despesa_digital/model/gasto_fixo.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:despesa_digital/database/movimentacao_db.dart';
 import 'package:despesa_digital/model/movimentacao.dart';
 import 'package:despesa_digital/view/movimentacoes.dart';
 
+import '../database/meta_db.dart';
+import '../model/meta.dart';
+
 class AdicionarMoviPage extends StatefulWidget {
-  final DateTime? selectedDay; // Adiciona a variável selectedDay
+  final DateTime? selectedDay;
 
   const AdicionarMoviPage({Key? key, this.selectedDay}) : super(key: key);
 
@@ -18,6 +26,16 @@ class _AdicionarMoviPageState extends State<AdicionarMoviPage> {
   TextEditingController _categoriaController = TextEditingController();
   TextEditingController _descricaoController = TextEditingController();
   DateTime _dataLimite = DateTime.now();
+
+  List<Widget> tipos = <Widget>[
+    Text(('DESPESA'), style: TextStyle(fontSize: 15)),
+    Text(('RECEITA'), style: TextStyle(fontSize: 15))
+  ];
+
+  final List<bool> _selectedTypes = <bool>[true, false];
+  final Color despesaColor = Colors.red; // Cor para Despesa
+  final Color receitaColor = Colors.green; // Cor para Receita
+  int tipo = 0;
 
   @override
   void initState() {
@@ -34,6 +52,38 @@ class _AdicionarMoviPageState extends State<AdicionarMoviPage> {
       content: SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
+            Column(children: <Widget>[
+              const SizedBox(height: 5),
+              ToggleButtons(
+                onPressed: (int index) {
+                  setState(() {
+                    // The button that is tapped is set to true, and the others to false.
+                    for (int i = 0; i < _selectedTypes.length; i++) {
+                      _selectedTypes[i] = i == index;
+                    }
+                    // Atualizar o valor do tipo com base na seleção
+                    if (_selectedTypes[0]) {
+                      tipo = 0; // Despesa
+                    } else {
+                      tipo = 1; // Receita
+                    }
+                  });
+                },
+                borderRadius: const BorderRadius.all(Radius.circular(8)),
+                borderColor: Colors.grey,
+                selectedBorderColor: _selectedTypes[0] ? despesaColor : receitaColor,
+                selectedColor: Colors.white,
+                fillColor: _selectedTypes[0] ? despesaColor : receitaColor,
+                color: Colors.black54,
+                constraints: const BoxConstraints(
+                  minHeight: 40.0,
+                  minWidth: 100.0,
+                ),
+                isSelected: _selectedTypes,
+                children: tipos,
+              ),
+        ],
+            ),
             TextField(
               controller: _valorController,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -58,24 +108,18 @@ class _AdicionarMoviPageState extends State<AdicionarMoviPage> {
       actions: <Widget>[
         TextButton(
           onPressed: () async {
-            // Obtendo os valores dos campos de texto e data selecionada
             double valor = double.parse(_valorController.text);
             String categoria = _categoriaController.text;
             String descricao = _descricaoController.text;
-            int recorrente = 0;
-            int tipo = 0;
-            String data = DateFormat('dd/MM/yyyy').format(_dataLimite);
+            String data = DateFormat('yyyy-MM-dd').format(_dataLimite);
 
-            // Criando a nova movimentação no banco de dados
             await MovimentacaoDB().create(
               data: data,
               valor: valor,
               categoria: categoria,
               descricao: descricao,
-              recorrente: recorrente,
               tipo: tipo,
             );
-            // Fechando o AlertDialog após adicionar a movimentação
             Navigator.of(context).pop(true);
           },
           child: Text('Adicionar'),
@@ -112,20 +156,72 @@ class MoviController {
   final MovimentacaoDB _moviDB = MovimentacaoDB();
   final Movimentacoes movis = Movimentacoes();
 
+  final Color despesaColor = Colors.red; // Cor para Despesa
+  final Color receitaColor = Colors.green; // Cor para Receita
+  final Color guardadoColor = Colors.blue; // Cor para Dinheiro Guardado
+  final Color contaColor = Colors.teal; // Cor para Dinheiro Guardado
+  final Color dividaColor = Colors.deepOrangeAccent; // Cor para Dinheiro Guardado
+
+
   // Método para exibir os detalhes da movimentação em uma caixa de diálogo
-  void mostrarDetalhesMovi(BuildContext context, Movimentacao movi) {
+  void mostrarDetalhesMovi(BuildContext context, Movimentacao movi, VoidCallback atualizarMovis) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+
+        DateTime data = DateTime.parse(movi.data);
+        String dataFormatada = DateFormat('dd/MM/yyyy').format(data);
+
+        Color tipoColor;
+        String tipoText;
+        Widget additionalInfo;
+
+        switch (movi.tipo) {
+          case 0:
+            tipoText = 'DESPESA';
+            tipoColor = despesaColor;
+            break;
+          case 1:
+            tipoText = 'RECEITA';
+            tipoColor = receitaColor;
+            break;
+          case 2:
+            tipoText = 'SALDO GUARDADO';
+            tipoColor = guardadoColor;
+            break;
+          case 3:
+            tipoText = 'PAGAMENTO DE CONTA';
+            tipoColor = contaColor;
+            break;
+          case 4:
+            tipoText = 'PAGAMENTO DE DÍVIDA';
+            tipoColor = dividaColor;
+            additionalInfo = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              ],
+            );
+            break;
+          default:
+            tipoText = 'DESCONHECIDO';
+            tipoColor = Colors.grey;
+        }
+
         return AlertDialog(
-          title: Text(movi.categoria),
+          title: Text(
+            tipoText,
+            style: TextStyle(
+              color: tipoColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text('Data de pagamento:  $dataFormatada'),
+              Text('Valor: R\$${movi.valor.toStringAsFixed(2)}'),
               Text('Descrição: ${movi.descricao}'),
-              Text('Data:  ${movi.data}'),
-              Text('Valor: ${movi.valor}'),
             ],
           ),
           actions: <Widget>[
@@ -136,6 +232,7 @@ class MoviController {
                 // Fechar a caixa de diálogo
                 Navigator.of(context).pop();
                 // Atualizar a lista de movimentações na página
+                atualizarMovis();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Movimentação excluída com sucesso!')),
                 );
@@ -155,19 +252,367 @@ class MoviController {
   }
 
   // Método para construir um ListTile para exibir uma movimentação
-  Widget construirMoviListTile(BuildContext context, Movimentacao movi) {
+  Widget construirMoviListTile(BuildContext context, Movimentacao movi, VoidCallback atualizarMetas) {
+
+    Color tipoColor;
+    String tipoText;
+
+    switch (movi.tipo) {
+      case 0:
+        tipoText = 'DESPESA';
+        tipoColor = despesaColor;
+        break;
+      case 1:
+        tipoText = 'RECEITA';
+        tipoColor = receitaColor;
+        break;
+      case 2:
+        tipoText = 'SALDO GUARDADO';
+        tipoColor = guardadoColor;
+        break;
+      case 3:
+          tipoText = 'PAGAMENTO DE CONTA';
+        tipoColor = contaColor;
+        break;
+      case 4:
+        tipoText = 'PAGAMENTO DE DÍVIDA';
+        tipoColor = dividaColor;
+        break;
+      default:
+        tipoText = 'DESCONHECIDO';
+        tipoColor = Colors.grey;
+    }
+
     return GestureDetector(
       onTap: () {
-        mostrarDetalhesMovi(context, movi);
+        mostrarDetalhesMovi(context, movi, atualizarMetas);
       },
       child: Card(
         elevation: 4.0,
+        color: Color(0xFFf0f0f0),
         child: ListTile(
-          title: Text(movi.categoria),
-          subtitle: Text(movi.valor.toString()),
-          trailing: Text('Progresso'), // Atualize isso com base nos dados da sua movimentação
+          title: Row(
+            children: [
+              Text(
+                tipoText,
+                style: TextStyle(
+                  color: tipoColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          subtitle: Text('Valor: R\$${movi.valor.toStringAsFixed(2)}'),
+          trailing: Text('Categoria: ${movi.categoria}'), // Atualize isso com base nos dados da sua movimentação
         ),
       ),
     );
   }
 }
+
+class GuardarSaldo extends StatefulWidget {
+  final DateTime? selectedDay;
+
+  const GuardarSaldo({Key? key, this.selectedDay}) : super(key: key);
+
+  @override
+  _GuardarSaldoState createState() => _GuardarSaldoState();
+}
+
+class _GuardarSaldoState extends State<GuardarSaldo> {
+  TextEditingController _valorController = TextEditingController();
+  Meta? _selectedMeta; // Meta selecionada
+  List<Meta> _metas = []; // Lista de metas
+  DateTime _dataLimite = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selectedDay != null) {
+      _dataLimite = widget.selectedDay!;
+    }
+    _fetchMetas(); // Carrega as metas ao iniciar
+  }
+
+  Future<void> _fetchMetas() async {
+    MetaDB metaDB = MetaDB();
+    List<Meta> metas = await metaDB.fetchAll();
+    setState(() {
+      _metas = metas;
+      if (_metas.isNotEmpty) {
+        _selectedMeta = _metas[0]; // Seleciona a primeira meta por padrão
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Guardar Saldo'),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: <Widget>[
+            DropdownButtonFormField<Meta>(
+              value: _selectedMeta,
+              items: _metas.map((Meta meta) {
+                return DropdownMenuItem<Meta>(
+                  value: meta,
+                  child: Text(meta.titulo),
+                );
+              }).toList(),
+              onChanged: (Meta? newMeta) {
+                setState(() {
+                  _selectedMeta = newMeta;
+                });
+              },
+              decoration: InputDecoration(labelText: 'Selecione uma Meta'),
+            ),
+            TextField(
+              controller: _valorController,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(labelText: 'Valor'),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () async {
+
+            int? meta_id = _selectedMeta?.id;
+            String categoria = "Metas";
+
+            double valor = double.parse(_valorController.text);
+
+            if (meta_id != null) {
+
+              print('Valor: $valor');
+              print('Categoria: $categoria');
+              print('Meta ID: $meta_id');
+
+              await MovimentacaoDB().create2(
+                data: DateFormat('yyyy-MM-dd').format(_dataLimite),
+                valor: valor,
+                categoria: categoria,
+                descricao: 'Guardado para meta ${_selectedMeta!.titulo}',
+                tipo: 2,
+                meta_id: meta_id,
+              );
+              Navigator.of(context).pop(true);
+            } else {
+              // Lidar com a situação em que nenhuma meta está selecionada
+              print('Nenhuma meta selecionada!');
+            }
+            },
+          child: Text('Adicionar'),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _valorController.dispose();
+    super.dispose();
+  }
+
+}
+
+class PagarConta extends StatefulWidget {
+  final DateTime? selectedDay;
+
+  const PagarConta({Key? key, this.selectedDay}) : super(key: key);
+
+  @override
+  _PagarContaState createState() => _PagarContaState();
+}
+
+class _PagarContaState extends State<PagarConta> {
+  TextEditingController _valorController = TextEditingController();
+  GastoFixo? _selectedConta; // Divida selecionada
+  List<GastoFixo> _gastos = []; // Lista de dividas
+  DateTime _dataLimite = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selectedDay != null) {
+      _dataLimite = widget.selectedDay!;
+    }
+    _fetchContas(); // Carrega as metas ao iniciar
+  }
+
+  Future<void> _fetchContas() async {
+    GastoDB gastoDB = GastoDB();
+    List<GastoFixo> gastos = await gastoDB.fetchAll();
+    setState(() {
+      _gastos = gastos;
+      if (_gastos.isNotEmpty) {
+        _selectedConta = _gastos[0]; // Seleciona a primeira meta por padrão
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Pagar Divida'),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: <Widget>[
+            DropdownButtonFormField<GastoFixo>(
+              value: _selectedConta,
+              items: _gastos.map((GastoFixo conta) {
+                return DropdownMenuItem<GastoFixo>(
+                  value: conta,
+                  child: Text(conta.titulo),
+                );
+              }).toList(),
+              onChanged: (GastoFixo? newGasto) {
+                setState(() {
+                  _selectedConta = newGasto;
+                });
+              },
+              decoration: InputDecoration(labelText: 'Selecione uma Conta'),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () async {
+
+            int? conta_id = _selectedConta?.id;
+            double? valor = _selectedConta?.valor;
+            String categoria = "Contas";
+
+            if (conta_id != null && valor != null) {
+
+              await MovimentacaoDB().create3(
+                data: DateFormat('yyyy-MM-dd').format(_dataLimite),
+                valor: valor,
+                categoria: categoria,
+                descricao: 'Pago conta ${_selectedConta!.titulo}',
+                tipo: 3,
+                conta_id: conta_id,
+              );
+              Navigator.of(context).pop(true);
+            } else {
+              // Lidar com a situação em que nenhuma meta está selecionada
+              print('Nenhuma conta selecionada!');
+            }
+          },
+          child: Text('Pagar'),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _valorController.dispose();
+    super.dispose();
+  }
+
+
+}
+
+
+class PagarDivida extends StatefulWidget {
+  final DateTime? selectedDay;
+
+  const PagarDivida({Key? key, this.selectedDay}) : super(key: key);
+
+  @override
+  _PagarDividaState createState() => _PagarDividaState();
+}
+
+class _PagarDividaState extends State<PagarDivida> {
+  TextEditingController _valorController = TextEditingController();
+  Divida? _selectedDivida; // Divida selecionada
+  List<Divida> _dividas = []; // Lista de dividas
+  DateTime _dataLimite = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selectedDay != null) {
+      _dataLimite = widget.selectedDay!;
+    }
+    _fetchDividas(); // Carrega as metas ao iniciar
+  }
+
+  Future<void> _fetchDividas() async {
+    DividaDB dividaDB = DividaDB();
+    List<Divida> dividas = await dividaDB.fetchAll();
+    setState(() {
+      _dividas = dividas;
+      if (_dividas.isNotEmpty) {
+        _selectedDivida = _dividas[0]; // Seleciona a primeira meta por padrão
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Pagar Divida'),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: <Widget>[
+            DropdownButtonFormField<Divida>(
+              value: _selectedDivida,
+              items: _dividas.map((Divida divida) {
+                return DropdownMenuItem<Divida>(
+                  value: divida,
+                  child: Text(divida.titulo),
+                );
+              }).toList(),
+              onChanged: (Divida? newDivida) {
+                setState(() {
+                  _selectedDivida = newDivida;
+                });
+              },
+              decoration: InputDecoration(labelText: 'Selecione uma Divida'),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () async {
+
+            int? divida_id = _selectedDivida?.id;
+            double? valor = _selectedDivida?.valor_parcela;
+            String categoria = "Dividas";
+
+            if (divida_id != null && valor != null) {
+
+              await MovimentacaoDB().create4(
+                data: DateFormat('yyyy-MM-dd').format(_dataLimite),
+                valor: valor,
+                categoria: categoria,
+                descricao: 'Pago dívida ${_selectedDivida!.titulo}',
+                tipo: 4,
+                divida_id: divida_id,
+              );
+              Navigator.of(context).pop(true);
+            } else {
+              // Lidar com a situação em que nenhuma meta está selecionada
+              print('Nenhuma divida selecionada!');
+            }
+          },
+          child: Text('Pagar'),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _valorController.dispose();
+    super.dispose();
+  }
+
+}
+
