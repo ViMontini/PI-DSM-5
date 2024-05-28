@@ -158,6 +158,10 @@ class MetaController {
   Widget construirMetaListTile(BuildContext context, Meta meta, VoidCallback atualizarMetas) {
     double progresso = meta.valor_guardado / meta.valor_total;  // Calcule o progresso da meta
 
+    if (progresso > 1.0) {
+      progresso = 1.0;
+    }
+
     return GestureDetector(
       onTap: () {
         mostrarDetalhesMeta(context, meta, atualizarMetas);

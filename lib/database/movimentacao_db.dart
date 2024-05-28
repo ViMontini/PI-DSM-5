@@ -24,6 +24,26 @@ class MovimentacaoDB {
   """);
   }
 
+  Future<void> createMoviDiSal(Database database) async {
+    await database.execute("""
+    CREATE TRIGGER diminuir_saldo AFTER INSERT ON $tableName
+    WHEN NEW.tipo = 0
+    BEGIN
+        UPDATE saldo SET saldo = saldo - NEW.valor;
+    END;
+  """);
+  }
+
+  Future<void> deleteMoviDiSal(Database database) async {
+    await database.execute("""
+    CREATE TRIGGER diminuir_saldo_del AFTER DELETE ON $tableName
+    WHEN OLD.tipo = 0
+    BEGIN
+        UPDATE saldo SET saldo = saldo + OLD.valor;
+    END;
+  """);
+  }
+
   Future<void> createMoviAuSal(Database database) async {
     await database.execute("""
     CREATE TRIGGER aumentar_saldo AFTER INSERT ON $tableName
@@ -34,12 +54,12 @@ class MovimentacaoDB {
   """);
   }
 
-  Future<void> createMoviDiSal(Database database) async {
+  Future<void> deleteMoviAuSal(Database database) async {
     await database.execute("""
-    CREATE TRIGGER diminuir_saldo AFTER INSERT ON $tableName
-    WHEN NEW.tipo = 0
+    CREATE TRIGGER aumentar_saldo_del AFTER DELETE ON $tableName
+    WHEN OLD.tipo = 1
     BEGIN
-        UPDATE saldo SET saldo = saldo - NEW.valor;
+        UPDATE saldo SET saldo = saldo - OLD.valor;
     END;
   """);
   }
@@ -56,6 +76,38 @@ class MovimentacaoDB {
   """);
   }
 
+  Future<void> deleteMoviGuaMeta(Database database) async {
+    await database.execute("""
+    CREATE TRIGGER guardar_saldo_meta_del AFTER DELETE ON $tableName
+    WHEN OLD.tipo = 2
+    BEGIN
+        UPDATE saldo SET saldo = saldo + OLD.valor;
+
+        UPDATE metas SET valor_guardado = valor_guardado - OLD.valor WHERE id = OLD.meta_id;
+    END;
+  """);
+  }
+
+  Future<void> createMoviPagCon(Database database) async {
+    await database.execute("""
+    CREATE TRIGGER pagamento_conta AFTER INSERT ON $tableName
+    WHEN NEW.tipo = 3
+    BEGIN
+        UPDATE saldo SET saldo = saldo - NEW.valor;
+    END
+  """);
+  }
+
+  Future<void> deleteMoviPagCon(Database database) async {
+    await database.execute("""
+    CREATE TRIGGER pagamento_conta_del AFTER DELETE ON $tableName
+    WHEN OLD.tipo = 3
+    BEGIN
+        UPDATE saldo SET saldo = saldo + OLD.valor;
+    END;
+  """);
+  }
+
   Future<void> createMoviPagDiv(Database database) async {
     await database.execute("""
     CREATE TRIGGER pagamento_divida AFTER INSERT ON $tableName
@@ -64,6 +116,18 @@ class MovimentacaoDB {
         UPDATE saldo SET saldo = saldo - NEW.valor;
 
         UPDATE dividas SET num_parcela_paga = num_parcela_paga + 1 WHERE id = NEW.divida_id;
+    END;
+  """);
+  }
+
+  Future<void> deleteMoviPagDiv(Database database) async {
+    await database.execute("""
+    CREATE TRIGGER pagamento_divida_del AFTER DELETE ON $tableName
+    WHEN OLD.tipo = 4
+    BEGIN
+        UPDATE saldo SET saldo = saldo + OLD.valor;
+
+        UPDATE dividas SET num_parcela_paga = num_parcela_paga - 1 WHERE id = OLD.divida_id;
     END;
   """);
   }

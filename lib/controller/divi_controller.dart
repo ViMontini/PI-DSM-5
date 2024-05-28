@@ -32,6 +32,23 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
     }
   }
 
+  Future<void> _selecionarData2(BuildContext context) async {
+    final DateTime? dataSelecionada2 = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(DateTime.now().year + 10),
+    );
+
+    if (dataSelecionada2 != null) {
+      setState(() {
+        _dataVenc = dataSelecionada2;
+      });
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -60,7 +77,7 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
               subtitle: Text(_dataVenc != null
                   ? '${_dataVenc.day}/${_dataVenc.month}/${_dataVenc.year}'
                   : 'Selecione a data de Fim'),
-              onTap: () => _selecionarData(context),
+              onTap: () => _selecionarData2(context),
             ),
             TextField(
               controller: _numParController,
@@ -84,6 +101,9 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
             String data_venc = DateFormat('yyyy-MM-dd').format(_dataVenc);
             int num_parcela = int.parse(_numParController.text);
             double valor_parcela = double.parse(_valorParController.text);
+
+            print("data de inicio: $data_inicio");
+            print("data de vencimento: $data_venc");
 
             DateTime hoje = DateTime.now();
 

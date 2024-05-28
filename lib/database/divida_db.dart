@@ -73,7 +73,7 @@ class DividaDB {
   Future<List<Divida>> fetchByDatas(String data) async {
     final database = await DatabaseService().database;
     final dividas = await database.rawQuery(
-      '''SELECT * FROM $tableName WHERE data_inicio >= ? AND data_vencimento <= ?''', [data, data],
+      '''SELECT * FROM $tableName WHERE data_inicio <= ? AND data_vencimento >= ?''', [data, data],
     );
     return dividas.map((divida) => Divida.fromSqfliteDatabase(divida)).toList();
   }

@@ -35,6 +35,12 @@ class DatabaseService {
         await createMoviAuSal(db, version);
         await createMoviDiSal(db, version);
         await createMoviGuaMeta(db, version);
+        await createMoviPagCon(db, version);
+        await deleteMoviAuSal(db, version);
+        await deleteMoviDiSal(db, version);
+        await deleteMoviGuaMeta(db, version);
+        await deleteMoviPagCon(db, version);
+        await deleteMoviPagDiv(db, version);
         await createMoviPagDiv(db, version);
         await createSaldo(db, version);
         await createSaldo1(db, version);
@@ -51,7 +57,13 @@ class DatabaseService {
   Future<void> createMoviAuSal(Database database, int version) async => await MovimentacaoDB().createMoviAuSal(database);
   Future<void> createMoviDiSal(Database database, int version) async => await MovimentacaoDB().createMoviDiSal(database);
   Future<void> createMoviGuaMeta(Database database, int version) async => await MovimentacaoDB().createMoviGuaMeta(database);
+  Future<void> createMoviPagCon(Database database, int version) async => await MovimentacaoDB().createMoviPagCon(database);
+  Future<void> deleteMoviPagCon(Database database, int version) async => await MovimentacaoDB().deleteMoviPagCon(database);
+  Future<void> deleteMoviAuSal(Database database, int version) async => await MovimentacaoDB().deleteMoviAuSal(database);
+  Future<void> deleteMoviDiSal(Database database, int version) async => await MovimentacaoDB().deleteMoviDiSal(database);
+  Future<void> deleteMoviGuaMeta(Database database, int version) async => await MovimentacaoDB().deleteMoviGuaMeta(database);
   Future<void> createMoviPagDiv(Database database, int version) async => await MovimentacaoDB().createMoviPagDiv(database);
+  Future<void> deleteMoviPagDiv(Database database, int version) async => await MovimentacaoDB().deleteMoviPagDiv(database);
   Future<void> createSaldo(Database database, int version) async => await SaldoDB().createTable(database);
   Future<void> createSaldo1(Database database, int version) async => await SaldoDB().createSaldo(database);
   Future<void> createGasto(Database database, int version) async => await GastoDB().createTable(database);

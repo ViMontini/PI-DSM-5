@@ -207,6 +207,7 @@ class MoviController {
             tipoColor = Colors.grey;
         }
 
+
         return AlertDialog(
           title: Text(
             tipoText,
@@ -226,15 +227,37 @@ class MoviController {
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () async {
-                // Chamar a função de excluir movimentação e atualizar a lista de movimentações
-                await _moviDB.delete(movi.id);
-                // Fechar a caixa de diálogo
-                Navigator.of(context).pop();
-                // Atualizar a lista de movimentações na página
-                atualizarMovis();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Movimentação excluída com sucesso!')),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text('Excluir Movimentação'),
+                      content: Text('Você tem certeza que deseja excluir essa movimentação?'),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // Fechar o alerta
+                          },
+                          child: Text('Cancelar'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            // Chamar a função de excluir movimentação e atualizar a lista de movimentações
+                            await _moviDB.delete(movi.id);
+                            // Fechar o alerta
+                            Navigator.of(context).pop();
+                            // Atualizar a lista de movimentações na página
+                            atualizarMovis();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Movimentação excluída com sucesso!')),
+                            );
+                          },
+                          child: Text('Excluir'),
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
               child: Text('Excluir'),
@@ -249,7 +272,9 @@ class MoviController {
         );
       },
     );
+
   }
+
 
   // Método para construir um ListTile para exibir uma movimentação
   Widget construirMoviListTile(BuildContext context, Movimentacao movi, VoidCallback atualizarMetas) {
@@ -404,7 +429,7 @@ class _GuardarSaldoState extends State<GuardarSaldo> {
               print('Nenhuma meta selecionada!');
             }
             },
-          child: Text('Adicionar'),
+          child: Text('Guardar'),
         ),
       ],
     );
@@ -429,8 +454,8 @@ class PagarConta extends StatefulWidget {
 
 class _PagarContaState extends State<PagarConta> {
   TextEditingController _valorController = TextEditingController();
-  GastoFixo? _selectedConta; // Divida selecionada
-  List<GastoFixo> _gastos = []; // Lista de dividas
+  GastoFixo? _selectedConta; // Conta selecionada
+  List<GastoFixo> _gastos = []; // Lista de contas
   DateTime _dataLimite = DateTime.now();
 
   @override
@@ -439,7 +464,7 @@ class _PagarContaState extends State<PagarConta> {
     if (widget.selectedDay != null) {
       _dataLimite = widget.selectedDay!;
     }
-    _fetchContas(); // Carrega as metas ao iniciar
+    _fetchContas(); // Carrega as contas ao iniciar
   }
 
   Future<void> _fetchContas() async {
@@ -448,7 +473,7 @@ class _PagarContaState extends State<PagarConta> {
     setState(() {
       _gastos = gastos;
       if (_gastos.isNotEmpty) {
-        _selectedConta = _gastos[0]; // Seleciona a primeira meta por padrão
+        _selectedConta = _gastos[0]; // Seleciona a primeira conta por padrão
       }
     });
   }
@@ -456,7 +481,7 @@ class _PagarContaState extends State<PagarConta> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Pagar Divida'),
+      title: Text('Pagar Conta'),
       content: SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
@@ -481,24 +506,43 @@ class _PagarContaState extends State<PagarConta> {
       actions: <Widget>[
         TextButton(
           onPressed: () async {
+            if (_selectedConta != null) {
+              bool isPaid = await GastoDB().isPaymentMadeThisMonth(_selectedConta!.id);
 
-            int? conta_id = _selectedConta?.id;
-            double? valor = _selectedConta?.valor;
-            String categoria = "Contas";
+              if (isPaid) {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text('Aviso'),
+                      content: Text('Você já realizou o pagamento dessa conta neste mês'),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text('OK'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              } else {
+                // Continue with payment
+                double valor = _selectedConta!.valor;
+                String categoria = "Contas";
 
-            if (conta_id != null && valor != null) {
-
-              await MovimentacaoDB().create3(
-                data: DateFormat('yyyy-MM-dd').format(_dataLimite),
-                valor: valor,
-                categoria: categoria,
-                descricao: 'Pago conta ${_selectedConta!.titulo}',
-                tipo: 3,
-                conta_id: conta_id,
-              );
-              Navigator.of(context).pop(true);
+                await MovimentacaoDB().create3(
+                  data: DateFormat('yyyy-MM-dd').format(_dataLimite),
+                  valor: valor,
+                  categoria: categoria,
+                  descricao: 'Pago conta ${_selectedConta!.titulo}',
+                  tipo: 3,
+                  conta_id: _selectedConta!.id,
+                );
+                Navigator.of(context).pop(true);
+              }
             } else {
-              // Lidar com a situação em que nenhuma meta está selecionada
               print('Nenhuma conta selecionada!');
             }
           },
@@ -513,8 +557,6 @@ class _PagarContaState extends State<PagarConta> {
     _valorController.dispose();
     super.dispose();
   }
-
-
 }
 
 

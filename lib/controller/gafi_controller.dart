@@ -91,7 +91,7 @@ class GastoController {
                 children: [
                   Text('Valor: R\$${gasto.valor.toStringAsFixed(2)}'),
                   if (paymentMade)
-                    Text('Já houve um pagamento desta conta no dia $formattedDate'),
+                    Text('Esse mês já houve um pagamento desta conta no dia $formattedDate'),
                 ],
               ),
               actions: <Widget>[
