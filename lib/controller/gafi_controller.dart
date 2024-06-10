@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:despesa_digital/controller/utils.dart';
 
+import '../utils/app_colors.dart';
+import '../utils/app_text_styles.dart';
+
 class AdicionarGastoPage extends StatefulWidget {
   @override
   _AdicionarGastoPageState createState() => _AdicionarGastoPageState();
@@ -129,36 +132,61 @@ class GastoController {
       onTap: () {
         mostrarDetalhesGasto(context, gasto, atualizarGastos);
       },
-      child: Card(
+      child: Card.outlined(
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: AppColors.purplelightMain, width: 2.0),
+          borderRadius: BorderRadius.circular(25.0),
+        ),
+        color: AppColors.white,
         elevation: 4.0,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: FutureBuilder<bool>(
-            future: _gastoDB.isPaymentMadeThisMonth(gasto.id),
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: _gastoDB.getPaymentDetails(gasto.id),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return CircularProgressIndicator();
+                return AlertDialog(
+                  title: Text(gasto.titulo),
+                  content: Center(child: CircularProgressIndicator()),
+                );
               }
-
-              bool paymentMade = snapshot.data ?? false;
-
+              bool paymentMade = snapshot.data?['paymentMade'] ?? false;
+              DateTime? paymentDate = snapshot.data?['paymentDate'];
+              String formattedDate = paymentDate != null ? DateFormat('dd/MM/yyyy').format(paymentDate) : '';
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Text(
-                      gasto.titulo.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 8.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('R\$${gasto.valor.toStringAsFixed(2)}'),
+                      Expanded(
+                        child: Text(
+                          gasto.titulo.toUpperCase(),
+                          style: AppTextStyles.cardheaderText,
+                        ),
+                      ),
+                      Text(
+                        'R\$${gasto.valor.toStringAsFixed(2)}',
+                        style: AppTextStyles.cardheaderText,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8.0),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              paymentMade
+                                  ? 'Já houve um pagamento para esta conta no dia $formattedDate'
+                                  : 'Não houve pagamento para esta conta esse mês',
+                            ),
+                          ],
+                        ),
+                      ),
                       paymentMade
                           ? Icon(Icons.check_circle, color: Colors.green)
                           : Icon(Icons.error, color: Colors.red),

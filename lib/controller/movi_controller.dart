@@ -11,6 +11,8 @@ import 'package:despesa_digital/view/movimentacoes.dart';
 
 import '../database/meta_db.dart';
 import '../model/meta.dart';
+import '../utils/app_colors.dart';
+import '../utils/app_text_styles.dart';
 
 class AdicionarMoviPage extends StatefulWidget {
   final DateTime? selectedDay;
@@ -207,7 +209,6 @@ class MoviController {
             tipoColor = Colors.grey;
         }
 
-
         return AlertDialog(
           title: Text(
             tipoText,
@@ -275,65 +276,202 @@ class MoviController {
 
   }
 
-
   // Método para construir um ListTile para exibir uma movimentação
   Widget construirMoviListTile(BuildContext context, Movimentacao movi, VoidCallback atualizarMetas) {
 
+    DateTime data = DateTime.parse(movi.data);
+    String dataFormatada = DateFormat('dd/MM/yyyy').format(data);
+
     Color tipoColor;
     String tipoText;
+    Color valorColor;
+    String valorSinal;
 
     switch (movi.tipo) {
       case 0:
         tipoText = 'DESPESA';
         tipoColor = despesaColor;
+        valorColor = Colors.red;
+        valorSinal = '-';
         break;
       case 1:
         tipoText = 'RECEITA';
         tipoColor = receitaColor;
+        valorColor = Colors.green;
+        valorSinal = '+';
         break;
       case 2:
         tipoText = 'SALDO GUARDADO';
         tipoColor = guardadoColor;
+        valorColor = Colors.red;
+        valorSinal = '-';
         break;
       case 3:
-          tipoText = 'PAGAMENTO DE CONTA';
+        tipoText = 'PAGAMENTO DE CONTA';
         tipoColor = contaColor;
+        valorColor = Colors.red;
+        valorSinal = '-';
         break;
       case 4:
         tipoText = 'PAGAMENTO DE DÍVIDA';
         tipoColor = dividaColor;
+        valorColor = Colors.red;
+        valorSinal = '-';
         break;
       default:
         tipoText = 'DESCONHECIDO';
         tipoColor = Colors.grey;
+        valorColor = Colors.grey;
+        valorSinal = '';
     }
 
     return GestureDetector(
       onTap: () {
         mostrarDetalhesMovi(context, movi, atualizarMetas);
       },
-      child: Card(
+      child: Card.outlined(
+        shape: RoundedRectangleBorder(
+            side: BorderSide(color: AppColors.purplelightMain, width: 2.0),
+            borderRadius: BorderRadius.circular(25.0)),
+        color: AppColors.white,
         elevation: 4.0,
-        color: Color(0xFFf0f0f0),
         child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+          leading: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.all(Radius.circular(8.0)),
+            ),
+            padding: const EdgeInsets.all(8.0),
+            child: const Icon(
+              Icons.monetization_on_outlined,
+            ),
+          ),
           title: Row(
             children: [
               Text(
-                tipoText,
-                style: TextStyle(
-                  color: tipoColor,
-                  fontWeight: FontWeight.bold,
-                ),
+                (movi.descricao ?? 'Descrição não disponível').toUpperCase(),
+                style: AppTextStyles.cardheaderText,
               ),
             ],
           ),
-          subtitle: Text('Valor: R\$${movi.valor.toStringAsFixed(2)}'),
-          trailing: Text('Categoria: ${movi.categoria}'), // Atualize isso com base nos dados da sua movimentação
+          subtitle: Text(dataFormatada),
+          trailing: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$valorSinal${movi.valor.toStringAsFixed(2)}',
+                style: AppTextStyles.cardheaderText.copyWith(color: valorColor),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+
+  Widget construirMoviHomePage(BuildContext context, Movimentacao movi) {
+
+    DateTime data = DateTime.parse(movi.data);
+    String dataFormatada = DateFormat('dd/MM/yyyy').format(data);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8.0,vertical: 2.0),
+      leading: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.all(Radius.circular(8.0)),
+        ),
+        padding: const EdgeInsets.all(8.0),
+        child: const Icon(
+          Icons.monetization_on_outlined,
+        ),
+      ),
+      title: Text(movi.descricao ?? 'Descrição não disponível'),
+      subtitle: Text(dataFormatada),
+      trailing: Text(
+        movi.valor.toString(),
+        style: TextStyle(
+          color: movi.valor.toString().startsWith('-') ? Colors.red : Colors.green,
+        ),
+      ),
+    );
+  }
+
+  // Função para exibir o filtro modal
+  void openFilterModal(BuildContext context, Function(DateTime, DateTime) onDateSelected) {
+    DateTime? _startDate;
+    DateTime? _endDate;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Filtrar por Data'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                title: Text('Data Inicial'),
+                subtitle: Text(_startDate == null
+                    ? 'Selecionar Data'
+                    : DateFormat('dd/MM/yyyy').format(_startDate!)),
+                onTap: () async {
+                  DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: _startDate ?? DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2101),
+                  );
+                  if (picked != null && picked != _startDate)
+                    _startDate = picked;
+                },
+              ),
+              ListTile(
+                title: Text('Data Final'),
+                subtitle: Text(_endDate == null
+                    ? 'Selecionar Data'
+                    : DateFormat('dd/MM/yyyy').format(_endDate!)),
+                onTap: () async {
+                  DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: _endDate ?? DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2101),
+                  );
+                  if (picked != null && picked != _endDate)
+                    _endDate = picked;
+                },
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (_startDate != null && _endDate != null) {
+                  onDateSelected(_startDate!, _endDate!);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text('Filtrar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }
+
+
 
 class GuardarSaldo extends StatefulWidget {
   final DateTime? selectedDay;

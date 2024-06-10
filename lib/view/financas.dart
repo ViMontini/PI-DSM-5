@@ -5,22 +5,18 @@ import 'package:despesa_digital/utils/app_text_styles.dart';
 import 'package:despesa_digital/utils/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:despesa_digital/database/saldo_db.dart';
-import 'package:despesa_digital/controller/movi_controller.dart';
-import 'package:despesa_digital/database/movimentacao_db.dart';
-import 'package:despesa_digital/model/movimentacao.dart';
 
-import '../model/movimentacao.dart';
-
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class Financas extends StatefulWidget {
+  const Financas({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<Financas> createState() => _FinancasState();
 }
 
-class _HomePageState extends State<HomePage> {
-  Future<List<Movimentacao>>? futureMovi;
-  final MoviController moviController = MoviController();
+class _FinancasState extends State<Financas> with AutomaticKeepAliveClientMixin<Financas> {
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void dispose() {
@@ -29,11 +25,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  void initState() {
+  void initState(){
     super.initState();
     log('init');
-    futureMovi = MovimentacaoDB().fetchAllDesc();
+    timer;
   }
+
+  Timer timer = Timer(const Duration(seconds: 2), () => log('finished'));
 
   Future<double> _fetchSaldo() async {
     final saldoDB = SaldoDB();
@@ -45,14 +43,9 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _refreshMovis() {
-    setState(() {
-      futureMovi = MovimentacaoDB().fetchAllDesc();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -100,7 +93,8 @@ class _HomePageState extends State<HomePage> {
                     horizontal: 8.w,
                   ),
                   decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(4.0)),
+                    borderRadius:
+                    const BorderRadius.all(Radius.circular(4.0)),
                     color: AppColors.white.withOpacity(0.06),
                   ),
                   child: Stack(
@@ -170,6 +164,20 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
+                      GestureDetector(
+                        child: PopupMenuButton(
+                          padding: EdgeInsets.zero,
+                          child: const Icon(
+                            Icons.more_horiz,
+                            color: AppColors.white,
+                          ),
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                                height: 24.0,
+                                child: Text("Item 1"))
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -177,55 +185,61 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           Positioned(
-            top: 270.h,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Ultimas Movimentações',
-                        style: AppTextStyles.smallText,
-                      ),
-                      Text(
-                        'Veja tudo',
-                        style: AppTextStyles.smallText,
-                      ),
-                    ],
+              top: 270.h,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Column(
+                children: [
+                   Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children:  [
+                        Text(
+                          'Finanças',
+                          style: AppTextStyles.smallText.apply(color: AppColors.black),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: FutureBuilder<List<Movimentacao>>(
-                    future: futureMovi,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        final List<Movimentacao> movis = snapshot.data!;
-                        if (movis.isEmpty) {
-                          return Center(child: Text('Nenhuma movimentação encontrada'));
-                        }
-                        return ListView.builder(
-                          itemCount: movis.length < 6 ? movis.length : 6,
-                          itemBuilder: (context, index) {
-                            final movi = movis[index];
-                            return moviController.construirMoviHomePage(context, movi);
-                          },
-                        );
-                      } else if (snapshot.hasError) {
-                        print(snapshot.error);
-                        return Center(child: Text('Erro ao carregar movimentações'));
-                      }
-                      return Center(child: CircularProgressIndicator());
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
+                  Expanded(
+                      child: ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          itemCount: 4,
+                          itemBuilder: (context, index){
+                            final color = index % 2 == 0 ? AppColors.income : AppColors.outcome;
+                            final value = index % 2 == 0 ? "+ \ 100.00" : "- \$ 100.00";
+                            return ListTile(
+                              contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8.0),
+                              leading: Container(
+                                decoration: const BoxDecoration(
+                                  color: AppColors.white,
+                                  borderRadius: BorderRadius.all(Radius.circular(8.0)),
+                                ),
+                                padding: const EdgeInsets.all(8.0),
+                                child: const Icon(
+                                  Icons.monetization_on_outlined,
+                                ),
+                              ),
+                              title: const Text(
+                                'Teste',
+                              ),
+                              subtitle: const Text(
+                                'Teste',
+                              ),
+                              trailing: Text(
+                                value,
+                              ),
+                            );
+                          }
+                      )
+                  )
+                ],
+              )
+          )
         ],
       ),
     );

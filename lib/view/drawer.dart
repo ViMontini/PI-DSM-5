@@ -1,4 +1,4 @@
-import 'package:despesa_digital/view/home_page.dart';
+import 'package:despesa_digital/view/home_page2.dart';
 import 'package:flutter/material.dart';
 import 'package:despesa_digital/view/saldo.dart';
 import 'package:despesa_digital/view/movimentacoes.dart';

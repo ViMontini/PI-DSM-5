@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../database/divida_db.dart';
 import '../model/divida.dart';
+import '../utils/app_colors.dart';
+import '../utils/app_text_styles.dart';
 import '../view/dividas.dart';
 import 'package:intl/intl.dart';
 
@@ -46,8 +48,6 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
       });
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -191,10 +191,17 @@ class DividaController {
       onTap: () {
         mostrarDetalhesDivida(context, divida, onDelete);
       },
-      child: Card(
+      child: Card.outlined(
+        shape: new RoundedRectangleBorder(
+            side: new BorderSide(color: AppColors.purplelightMain, width: 2.0),
+            borderRadius: BorderRadius.circular(25.0)),
+        color: AppColors.white,
         elevation: 4.0,
         child: ListTile(
-          title: Text(divida.titulo.toUpperCase()),
+          title: Text(
+            divida.titulo.toUpperCase(),
+            style: AppTextStyles.cardheaderText,
+          ),
           subtitle: Text('Valor Total: R\$${divida.valor_total.toStringAsFixed(2)}'),
         ),
       ),

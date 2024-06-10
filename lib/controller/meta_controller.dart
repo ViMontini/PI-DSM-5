@@ -1,8 +1,10 @@
+import 'package:despesa_digital/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../database/meta_db.dart';
 import 'package:intl/intl.dart';
 import 'package:despesa_digital/controller/utils.dart';
 import '../model/meta.dart';
+import '../utils/app_text_styles.dart';
 import '../view/metas.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
@@ -32,6 +34,8 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
       });
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +170,11 @@ class MetaController {
       onTap: () {
         mostrarDetalhesMeta(context, meta, atualizarMetas);
       },
-      child: Card(
+      child: Card.outlined(
+        shape: new RoundedRectangleBorder(
+            side: new BorderSide(color: AppColors.purplelightMain, width: 2.0),
+            borderRadius: BorderRadius.circular(25.0)),
+        color: AppColors.white,
         elevation: 4.0,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -176,10 +184,7 @@ class MetaController {
               Center(
                 child: Text(
                   meta.titulo.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTextStyles.cardheaderText
                 ),
               ),
               SizedBox(height: 8.0),

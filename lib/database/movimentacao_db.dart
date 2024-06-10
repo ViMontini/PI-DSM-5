@@ -164,10 +164,17 @@ class MovimentacaoDB {
     );
   }
 
-  Future<List<Movimentacao>> fetchAll() async {
+  Future<List<Movimentacao>> fetchAllAsc() async {
     final database = await DatabaseService().database;
     final movis = await database.rawQuery(
-        '''Select * from $tableName ''');
+        '''Select * from $tableName ORDER BY id asc''');
+    return movis.map((movi) => Movimentacao.fromSqfliteDatabase(movi)).toList();
+  }
+
+  Future<List<Movimentacao>> fetchAllDesc() async {
+    final database = await DatabaseService().database;
+    final movis = await database.rawQuery(
+        '''Select * from $tableName ORDER BY id desc''');
     return movis.map((movi) => Movimentacao.fromSqfliteDatabase(movi)).toList();
   }
 
