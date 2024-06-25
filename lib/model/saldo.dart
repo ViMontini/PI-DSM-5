@@ -6,9 +6,9 @@ class Saldo {
   final double saldo;
 
   Saldo({
-      required this.id,
-      required this.saldo,
-    });
+    required this.id,
+    required this.saldo,
+  });
 
   factory Saldo.fromSqfliteDatabase(Map<String, dynamic> map) => Saldo(
     id: map['id']?.toInt() ?? 0,

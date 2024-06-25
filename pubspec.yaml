@@ -1,5 +1,5 @@
 name: despesa_digital
-description: A new Flutter project.
+description: "Aplicativo de gerenciamento financeiro"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.6 <4.0.0'
+  sdk: '>=3.3.4 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -30,12 +30,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  table_calendar: ^3.0.0
   flutter_secure_storage: ^5.0.2
+  http: ^1.1.0
+  flutter_date_pickers: ^0.4.0
+  fl_chart: ^0.68.0
+  google_generative_ai: ^0.4.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.2
+  cupertino_icons: ^1.0.6
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:
@@ -43,14 +47,17 @@ dev_dependencies:
   intl: ^0.19.0
   sqflite: ^2.1.0+1
   percent_indicator: ^4.0.1
-
+  flutter_native_splash: ^2.0.6
+  flutter_localizations:
+    sdk: flutter
+  flutter_launcher_icons: ^0.9.2
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.0
+  flutter_lints: ^3.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -63,10 +70,14 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-
   # To add assets to your application, add an assets section, like this:
-assets:
-    - assets/images/logo2.png
+  assets:
+  - assets/images/logo3.png
+  - assets/images/logo1.png
+  - assets/icon/appstore.png
+  - assets/icon/android/mipmap-xxhdpi/ic_launcher.png
+  - assets/images/user_avatar.png
+  #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
@@ -93,3 +104,7 @@ assets:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+flutter_icons:
+  android: true
+  image_path: "assets/icon/android/mipmap-xxhdpi/ic_launcher.png"

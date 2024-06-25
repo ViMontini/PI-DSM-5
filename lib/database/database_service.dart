@@ -1,10 +1,12 @@
-import 'package:despesa_digital/database/divida_db.dart';
-import 'package:despesa_digital/database/meta_db.dart';
-import 'package:despesa_digital/database/movimentacao_db.dart';
 import 'package:despesa_digital/database/saldo_db.dart';
-import 'package:despesa_digital/database/gasto_db.dart';
+import 'package:despesa_digital/database/user_db.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+
+import 'conta_db.dart';
+import 'divida_db.dart';
+import 'meta_db.dart';
+import 'movi_db.dart';
 
 class DatabaseService {
   Database? _database;
@@ -29,6 +31,7 @@ class DatabaseService {
       path,
       version: 1,
       onCreate: (db, version) async {
+        await createUser(db, version);
         await createMeta(db, version);
         await createDivida(db, version);
         await createMovi(db, version);
@@ -51,6 +54,7 @@ class DatabaseService {
     return database;
   }
 
+  Future<void> createUser(Database database, int version) async => await UserDB().createUser(database);
   Future<void> createMeta(Database database, int version) async => await MetaDB().createTable(database);
   Future<void> createDivida(Database database, int version) async => await DividaDB().createTable(database);
   Future<void> createMovi(Database database, int version) async => await MovimentacaoDB().createTable(database);
@@ -66,5 +70,5 @@ class DatabaseService {
   Future<void> deleteMoviPagDiv(Database database, int version) async => await MovimentacaoDB().deleteMoviPagDiv(database);
   Future<void> createSaldo(Database database, int version) async => await SaldoDB().createTable(database);
   Future<void> createSaldo1(Database database, int version) async => await SaldoDB().createSaldo(database);
-  Future<void> createGasto(Database database, int version) async => await GastoDB().createTable(database);
+  Future<void> createGasto(Database database, int version) async => await ContaDB().createTable(database);
 }

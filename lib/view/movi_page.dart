@@ -1,16 +1,18 @@
 import 'dart:async';
 import 'dart:developer';
-import 'package:despesa_digital/utils/app_colors.dart';
-import 'package:despesa_digital/utils/app_text_styles.dart';
 import 'package:despesa_digital/utils/sizes.dart';
 import 'package:flutter/material.dart';
-import 'package:despesa_digital/database/saldo_db.dart';
-import 'package:despesa_digital/controller/movi_controller.dart';
-import 'package:despesa_digital/database/movimentacao_db.dart';
-import 'package:despesa_digital/model/movimentacao.dart';
+import '../controller/movi_controller.dart';
+import '../database/movi_db.dart';
+import '../database/saldo_db.dart';
+import '../model/movimentacao.dart';
+import '../utils/app_colors.dart';
+import '../utils/app_text_styles.dart';
 
 class MoviPage extends StatefulWidget {
-  const MoviPage({Key? key}) : super(key: key);
+  final MoviController moviController;
+
+  const MoviPage({Key? key, required this.moviController}) : super(key: key);
 
   @override
   State<MoviPage> createState() => _MoviPageState();
@@ -18,11 +20,7 @@ class MoviPage extends StatefulWidget {
 
 class _MoviPageState extends State<MoviPage> {
   Future<List<Movimentacao>>? futureMovi;
-  final MoviController moviController = MoviController();
-  String _order = 'desc';
-  String _tipoMovimentacao = 'Todos';
-  DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now();
+  bool _isVisible = false;
 
   @override
   void dispose() {
@@ -34,6 +32,7 @@ class _MoviPageState extends State<MoviPage> {
   void initState() {
     super.initState();
     log('init');
+    widget.moviController.refreshMovis = _refreshMovis;
     futureMovi = MovimentacaoDB().fetchAllDesc();
   }
 
@@ -49,39 +48,10 @@ class _MoviPageState extends State<MoviPage> {
     });
   }
 
-  Widget _buildDateSelector(BuildContext context,
-      {required String label,
-        required DateTime? selectedDate,
-        required Function(DateTime?) onDateSelected}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label),
-        GestureDetector(
-          onTap: () async {
-            DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate: DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
-            );
-            onDateSelected(picked);
-          },
-          child: Container(
-            padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(4.0),
-            ),
-            child: Text(
-              selectedDate != null
-                  ? selectedDate.toLocal().toString().split(' ')[0]
-                  : 'Selecionar',
-            ),
-          ),
-        ),
-      ],
-    );
+  void _applyFilters(DateTime startDate, DateTime endDate, String orderBy) {
+    setState(() {
+      futureMovi = widget.moviController.fetchFilteredMovis(startDate, endDate, orderBy);
+    });
   }
 
   @override
@@ -108,11 +78,11 @@ class _MoviPageState extends State<MoviPage> {
             ),
           ),
           Positioned(
-            left: 50.w,
-            right: 50.w,
+            left: 250.w,
+            right: 250.w,
             top: 80.h,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 32.h),
+              padding: EdgeInsets.symmetric(horizontal: 150.w, vertical: 32.h),
               decoration: const BoxDecoration(
                 color: AppColors.purpledarkOne,
                 borderRadius: BorderRadius.all(Radius.circular(16.0)),
@@ -127,8 +97,8 @@ class _MoviPageState extends State<MoviPage> {
                   IconButton(
                     icon: const Icon(Icons.filter_list, color: AppColors.white, size: 35),
                     onPressed: () {
-                      moviController.openFilterModal(context, (DateTime startDate, DateTime endDate) {
-                        // Aqui você pode usar startDate e endDate
+                      widget.moviController.openFilterModal(context, (DateTime startDate, DateTime endDate, String orderBy) {
+                        _applyFilters(startDate, endDate, orderBy);
                       });
                     },
                   ),
@@ -144,8 +114,16 @@ class _MoviPageState extends State<MoviPage> {
             child: FutureBuilder<List<Movimentacao>>(
               future: futureMovi,
               builder: (context, snapshot) {
-                if (snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  log(snapshot.error.toString());
+                  return Center(child: Text('Erro ao carregar movimentações'));
+                } else if (snapshot.hasData) {
                   final List<Movimentacao> movis = snapshot.data!;
+                  if (movis.isEmpty) {
+                    return Center(child: Text('Nenhuma movimentação encontrada'));
+                  }
                   return CustomScrollView(
                     slivers: [
                       SliverToBoxAdapter(child: SizedBox(height: 8.h)),
@@ -153,18 +131,15 @@ class _MoviPageState extends State<MoviPage> {
                         delegate: SliverChildBuilderDelegate(
                               (context, index) {
                             final movi = movis[index];
-                            return moviController.construirMoviListTile(context, movi, _refreshMovis);
+                            return widget.moviController.construirMoviListTile(context, movi, _refreshMovis);
                           },
                           childCount: movis.length,
                         ),
                       ),
                     ],
                   );
-                } else if (snapshot.hasError) {
-                  log(snapshot.error.toString());
-                  return Center(child: Text('Erro ao carregar movimentações'));
                 }
-                return Center(child: CircularProgressIndicator());
+                return Container(); // Retornar um contêiner vazio como último recurso
               },
             ),
           ),

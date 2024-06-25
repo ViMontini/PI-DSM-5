@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'dart:developer';
-import 'package:despesa_digital/utils/app_colors.dart';
-import 'package:despesa_digital/utils/app_text_styles.dart';
 import 'package:despesa_digital/utils/sizes.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:despesa_digital/database/saldo_db.dart';
-import 'package:despesa_digital/controller/movi_controller.dart';
-import 'package:despesa_digital/database/movimentacao_db.dart';
-import 'package:despesa_digital/model/movimentacao.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import '../controller/home_controller.dart';
+import '../controller/movi_controller.dart';
+import '../database/movi_db.dart';
+import '../database/saldo_db.dart';
+import '../database/user_db.dart'; // Importe o UserDB
 import '../model/movimentacao.dart';
+import '../model/user.dart'; // Importe o User
+import '../utils/app_colors.dart';
+import '../utils/app_text_styles.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,6 +25,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Future<List<Movimentacao>>? futureMovi;
   final MoviController moviController = MoviController();
+  final HomeController homeController = HomeController();
+  bool _isBalanceVisible = false;
+  String? _username;
 
   @override
   void dispose() {
@@ -33,6 +40,24 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     log('init');
     futureMovi = MovimentacaoDB().fetchAllDesc();
+    _isBalanceVisible = PageStorage.of(context)?.readState(context, identifier: 'balanceVisibility') ?? false;
+    _loadUserDetails();
+  }
+
+  Future<void> _loadUserDetails() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int? userId = prefs.getInt('user_id');
+    if (userId != null) {
+      UserDB userDB = UserDB();
+      User user = await userDB.fetchById(userId);
+      setState(() {
+        _username = user.username;
+      });
+    } else {
+      setState(() {
+        _username = 'Usuário';
+      });
+    }
   }
 
   Future<double> _fetchSaldo() async {
@@ -51,9 +76,17 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _toggleBalanceVisibility() {
+    setState(() {
+      _isBalanceVisible = !_isBalanceVisible;
+      PageStorage.of(context)?.writeState(context, _isBalanceVisible, identifier: 'balanceVisibility');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: PageStorageKey('HomePage'),
       body: Stack(
         children: [
           Positioned(
@@ -85,49 +118,29 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Good Afternoon,',
+                      homeController.getGreeting(),
                       style: AppTextStyles.smallText.apply(color: AppColors.white),
                     ),
                     Text(
-                      'Leonardo',
+                      _username ?? 'Carregando...',
                       style: AppTextStyles.smallText.apply(color: AppColors.white),
                     ),
                   ],
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    vertical: 8.h,
-                    horizontal: 8.w,
+                IconButton(
+                  icon: Icon(
+                    _isBalanceVisible ? Icons.visibility : Icons.visibility_off,
+                    color: AppColors.white,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(4.0)),
-                    color: AppColors.white.withOpacity(0.06),
-                  ),
-                  child: Stack(
-                    alignment: const AlignmentDirectional(0.5, -0.5),
-                    children: [
-                      const Icon(
-                        Icons.notifications_none_outlined,
-                        color: AppColors.white,
-                      ),
-                      Container(
-                        width: 8.w,
-                        height: 8.w,
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
-                      )
-                    ],
-                  ),
-                )
+                  onPressed: _toggleBalanceVisibility,
+                ),
               ],
             ),
           ),
           Positioned(
             left: 250.w,
             right: 250.w,
-            top: 135.h,
+            top: 130.h,
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: 150.w,
@@ -162,7 +175,9 @@ class _HomePageState extends State<HomePage> {
                                 );
                               } else {
                                 return Text(
-                                  '\$ ${snapshot.data?.toStringAsFixed(2) ?? "0.00"}',
+                                  _isBalanceVisible
+                                      ? '\$${NumberFormat("#,##0.00", "pt_BR").format(snapshot.data) ?? "0.00"}'
+                                      : '****',
                                   style: AppTextStyles.smallText.apply(color: AppColors.white),
                                 );
                               }
@@ -177,27 +192,21 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           Positioned(
-            top: 270.h,
+            top: 290.h,
             left: 0,
             right: 0,
             bottom: 0,
             child: Column(
               children: [
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Ultimas Movimentações',
-                        style: AppTextStyles.smallText,
-                      ),
-                      Text(
-                        'Veja tudo',
-                        style: AppTextStyles.smallText,
-                      ),
-                    ],
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ultimas Movimentações',
+                      style: AppTextStyles.mediumText,
+                    ),
+                  ],
                 ),
                 Expanded(
                   child: FutureBuilder<List<Movimentacao>>(
@@ -209,10 +218,15 @@ class _HomePageState extends State<HomePage> {
                           return Center(child: Text('Nenhuma movimentação encontrada'));
                         }
                         return ListView.builder(
-                          itemCount: movis.length < 6 ? movis.length : 6,
+                          itemCount: movis.length < 5 ? movis.length : 5,
                           itemBuilder: (context, index) {
                             final movi = movis[index];
-                            return moviController.construirMoviHomePage(context, movi);
+                            return moviController.construirMoviHomePage(
+                              context,
+                              movi,
+                              _refreshMovis,
+                              _isBalanceVisible,
+                            );
                           },
                         );
                       } else if (snapshot.hasError) {

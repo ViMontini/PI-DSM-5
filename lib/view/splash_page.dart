@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:despesa_digital/view/home_page.dart';
-import 'package:despesa_digital/view/home_page_view.dart';
 import 'package:flutter/material.dart';
+import '../controller/main_navigator.dart';
+import 'home_page_view.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -15,18 +15,18 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    init();
+    _navigateToHome();
   }
 
-  Timer init(){
-    return Timer(
-        Duration(seconds: 2),
-        navigateToHome);
-  }
-
-  void navigateToHome() {
-    Navigator.push(context, MaterialPageRoute(
-        builder: (context) => const HomePageView()));
+  Future<void> _navigateToHome() async {
+    await Future.delayed(Duration(seconds: 2));
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => MainNavigator(),
+        ),
+      );
+    }
   }
 
   @override

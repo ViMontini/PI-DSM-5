@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:despesa_digital/database/database_service.dart';
-import 'package:despesa_digital/model/saldo.dart';
 import 'package:intl/intl.dart';
+import '../model/saldo.dart';
+import 'database_service.dart';
 
 class SaldoDB{
 

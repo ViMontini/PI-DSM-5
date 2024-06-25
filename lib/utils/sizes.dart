@@ -19,19 +19,19 @@ class Sizes {
   double get height => _height;
 
   //método de configuração inicial
-static void init(
-    BuildContext context, {
-      Size designSize = _designSize,
-  }) {
-      //verifica se existe dados de MediaQuery
-      final deviceData = MediaQuery.maybeOf(context);
+  static void init(
+      BuildContext context, {
+        Size designSize = _designSize,
+      }) {
+    //verifica se existe dados de MediaQuery
+    final deviceData = MediaQuery.maybeOf(context);
 
-      //caso não exista, recebe o valor inicial do protótipo
-  final deviceSize = deviceData?.size ?? _designSize;
+    //caso não exista, recebe o valor inicial do protótipo
+    final deviceSize = deviceData?.size ?? _designSize;
 
-  //atualiza getters
-  _instance._height = deviceSize.height;
-  _instance._width = deviceSize.width;
+    //atualiza getters
+    _instance._height = deviceSize.height;
+    _instance._width = deviceSize.width;
   }
 }
 

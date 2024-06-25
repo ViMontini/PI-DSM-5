@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:despesa_digital/database/database_service.dart';
-import 'package:despesa_digital/model/divida.dart';
+import '../model/divida.dart';
+import 'database_service.dart';
 
 class DividaDB {
   final tableName = 'dividas';
@@ -77,4 +77,29 @@ class DividaDB {
     );
     return dividas.map((divida) => Divida.fromSqfliteDatabase(divida)).toList();
   }
+
+  Future<Map<String, dynamic>> getPaymentDetails(int id) async {
+    final database = await DatabaseService().database;
+    final now = DateTime.now();
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    final result = await database.rawQuery(
+      '''SELECT data FROM movimentacoes WHERE divida_id = ? AND data >= ? AND data <= ? ORDER BY data DESC LIMIT 1''',
+      [id, firstDayOfMonth.toIso8601String(), lastDayOfMonth.toIso8601String()],
+    );
+
+    if (result.isNotEmpty) {
+      return {
+        'paymentMade': true,
+        'paymentDate': DateTime.parse(result.first['data'] as String),
+      };
+    } else {
+      return {
+        'paymentMade': false,
+        'paymentDate': null,
+      };
+    }
+  }
+
 }

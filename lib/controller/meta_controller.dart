@@ -1,15 +1,17 @@
-import 'package:despesa_digital/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../database/meta_db.dart';
 import 'package:intl/intl.dart';
-import 'package:despesa_digital/controller/utils.dart';
 import '../model/meta.dart';
+import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
-import '../view/metas.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
 
 class AdicionarMetaPage extends StatefulWidget {
+
+  final VoidCallback onAdd;
+  AdicionarMetaPage({required this.onAdd});
+
   @override
   _AdicionarMetaPageState createState() => _AdicionarMetaPageState();
 }
@@ -24,7 +26,7 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
     final DateTime? dataSelecionada = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
+      firstDate: DateTime(DateTime.now().year - 10),
       lastDate: DateTime(DateTime.now().year + 10),
     );
 
@@ -34,8 +36,6 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
       });
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +59,7 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
             ),
             ListTile(
               title: Text('Data Limite'),
-              subtitle: Text(_dataLimite != null
-                  ? '${_dataLimite.day}/${_dataLimite.month}/${_dataLimite.year}'
-                  : 'Selecione a data'),
+              subtitle: Text('${_dataLimite.day}/${_dataLimite.month}/${_dataLimite.year}'),
               onTap: () => _selecionarData(context),
             ),
           ],
@@ -84,9 +82,16 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
               data_limite: dataLimite,
             );
             // Fechando o AlertDialog após adicionar a meta
+            widget.onAdd(); // Chama o callback para atualizar a lista
             Navigator.of(context).pop(true);
           },
           child: Text('Adicionar'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+          },
+          child: Text('Cancelar'),
         ),
       ],
     );
@@ -126,8 +131,8 @@ class MetaController {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Descrição: ${meta.descricao}'),
-              Text('Valor Total: R\$${meta.valor_total.toStringAsFixed(2)}'),
-              Text('Valor Guardado: R\$${meta.valor_guardado.toStringAsFixed(2)}'),
+              Text('Valor Total: R\$${NumberFormat("#,##0.00", "pt_BR").format(meta.valor_total)}'),
+              Text('Valor Guardado: R\$${NumberFormat("#,##0.00", "pt_BR").format(meta.valor_guardado)}'),
               Text('Data Limite: $dataFormatada'),
             ],
           ),
@@ -183,8 +188,8 @@ class MetaController {
             children: [
               Center(
                 child: Text(
-                  meta.titulo.toUpperCase(),
-                  style: AppTextStyles.cardheaderText
+                    meta.titulo.toUpperCase(),
+                    style: AppTextStyles.cardheaderText
                 ),
               ),
               SizedBox(height: 8.0),
@@ -193,8 +198,8 @@ class MetaController {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('R\$${meta.valor_guardado.toStringAsFixed(2)}'),
-                  Text('R\$${meta.valor_total.toStringAsFixed(2)}'),
+                  Text('R\$${NumberFormat("#,##0.00", "pt_BR").format(meta.valor_guardado)}'),
+                  Text('R\$${NumberFormat("#,##0.00", "pt_BR").format(meta.valor_total)}'),
                 ],
               ),
               SizedBox(height: 8.0),
@@ -206,8 +211,8 @@ class MetaController {
                 barRadius: Radius.circular(10),
                 center: Text(('${(progresso * 100).toStringAsFixed(1)}%'),
                   style: TextStyle(
-                  fontSize: 13.0,
-                  color: Colors.black87,),),
+                    fontSize: 13.0,
+                    color: Colors.black87,),),
               ),
             ],
           ),

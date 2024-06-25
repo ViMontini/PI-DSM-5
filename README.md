@@ -1,10 +1,16 @@
-# Projeto Integrador - Fatec Ogari de Castro Pacheco - DSM 5º Semestre
+# despesa_digital
 
-## Integrantes
-Davi Áquila, João Moreira, Leonardo Dezoti, Lucas Rogatto, Pedro Godoy e Vitor Montini
+Aplicativo para gerenciaento financeiro
 
-# Despesa Digital
+## Getting Started
 
-## Sobre
+This project is a starting point for a Flutter application.
 
-Despesa Digital é um aplicativo simples e prático de ser utilizado para controlar sua vida financeira.
+A few resources to get you started if this is your first Flutter project:
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.

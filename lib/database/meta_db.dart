@@ -1,7 +1,8 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:despesa_digital/database/database_service.dart';
-import 'package:despesa_digital/model/meta.dart';
 import 'package:intl/intl.dart';
+
+import '../model/meta.dart';
+import 'database_service.dart';
 
 class MetaDB{
   final tableName = 'metas';
@@ -29,8 +30,8 @@ class MetaDB{
   Future<List<Meta>> fetchAll() async {
     final database = await DatabaseService().database;
     final metas = await database.rawQuery(
-      '''Select * from $tableName ''');
-      return metas.map((meta) => Meta.fromSqfliteDatabase(meta)).toList();
+        '''Select * from $tableName ''');
+    return metas.map((meta) => Meta.fromSqfliteDatabase(meta)).toList();
   }
 
   Future<Meta> fetchById(int id) async {
