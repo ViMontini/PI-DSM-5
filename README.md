@@ -1,6 +1,6 @@
 # despesa_digital
 
-Aplicativo para gerenciaento financeiro
+Aplicativo para gerenciamento financeiro
 
 ## Getting Started
 
