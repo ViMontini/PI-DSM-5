@@ -1,8 +1,10 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // O plugin Flutter deve ser aplicado após os plugins do Android e Kotlin
     id "dev.flutter.flutter-gradle-plugin"
+    // Firebase plugin
+    id "com.google.gms.google-services"
 }
 
 def localProperties = new Properties()
@@ -13,19 +15,13 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
-if (flutterVersionCode == null) {
-    flutterVersionCode = "1"
-}
-
-def flutterVersionName = localProperties.getProperty("flutter.versionName")
-if (flutterVersionName == null) {
-    flutterVersionName = "1.0"
-}
+// Defina valores padrão se não estiverem presentes no local.properties
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode", "2").toInteger()
+def flutterVersionName = localProperties.getProperty("flutter.versionName", "2.0.0")
 
 android {
     namespace = "com.fatec.itapira.despesa_digital"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -34,21 +30,28 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.fatec.itapira.despesa_digital"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutterVersionCode.toInteger()
+        resValue "string", "applicationName", "Despesa Digital"
+        minSdk = 23
+        targetSdk = 34
+        versionCode = flutterVersionCode
         versionName = flutterVersionName
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            // No modo debug, desativamos encolhimento de código e recursos
+            minifyEnabled false
+            shrinkResources false
         }
     }
 }
@@ -56,3 +59,15 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Use Firebase BoM para gerenciar versões de dependências do Firebase
+    implementation platform('com.google.firebase:firebase-bom:33.4.0')
+
+    // Outras dependências do Firebase
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    // Você pode adicionar mais dependências aqui, conforme necessário
+}
+
+apply plugin: 'com.google.gms.google-services'

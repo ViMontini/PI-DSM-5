@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "504443878394",
+    "project_id": "despesa-digital-f04c5",
+    "storage_bucket": "despesa-digital-f04c5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:504443878394:android:0167a16cd0296462754243",
+        "android_client_info": {
+          "package_name": "com.fatec.itapira.despesa_digital"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "504443878394-qiprvsq8m2fjqof4fk3noa2t11eor5os.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fatec.itapira.despesa_digital",
+            "certificate_hash": "a577c053a0d1ad820357ee5062186c95dc120ad9"
+          }
+        },
+        {
+          "client_id": "504443878394-3b3s2vhvej8omqfvqabdshn1eoh71n29.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOnnDFJDi-IqTsjRaYaqMMZzS8r5YDoO4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "504443878394-3b3s2vhvej8omqfvqabdshn1eoh71n29.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
