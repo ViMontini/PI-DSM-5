@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../controller/home_controller.dart';
 import '../controller/movi_controller.dart';
+import '../database/carteira_db.dart';
 import '../database/movi_db.dart';
 import '../database/saldo_db.dart';
 import '../database/user_db.dart'; // Importe o UserDB
@@ -29,6 +30,11 @@ class _HomePageState extends State<HomePage> {
   bool _isBalanceVisible = false;
   String? _username;
 
+  // Adiciona estado para o texto selecionado e saldo/caracteira.
+  String _selectedText = 'Saldo Total';
+  Future<double>? futureSaldoTotal;
+  Future<double>? futureCarteiraSaldo;
+
   @override
   void dispose() {
     log('disposed');
@@ -42,6 +48,8 @@ class _HomePageState extends State<HomePage> {
     futureMovi = MovimentacaoDB().fetchAllDesc();
     _isBalanceVisible = PageStorage.of(context)?.readState(context, identifier: 'balanceVisibility') ?? false;
     _loadUserDetails();
+    futureSaldoTotal = _fetchSaldo();
+    futureCarteiraSaldo = CarteiraDB().obterSaldo();
   }
 
   Future<void> _loadUserDetails() async {
@@ -49,10 +57,17 @@ class _HomePageState extends State<HomePage> {
     int? userId = prefs.getInt('user_id');
     if (userId != null) {
       UserDB userDB = UserDB();
-      User user = await userDB.fetchById(userId);
-      setState(() {
-        _username = user.username;
-      });
+      User? user = await userDB.fetchUserById(userId);
+
+      if (user != null) {
+        setState(() {
+          _username = user.username.split(' ').first;
+        });
+      } else {
+        setState(() {
+          _username = 'Usuário não encontrado';
+        });
+      }
     } else {
       setState(() {
         _username = 'Usuário';
@@ -80,6 +95,12 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _isBalanceVisible = !_isBalanceVisible;
       PageStorage.of(context)?.writeState(context, _isBalanceVisible, identifier: 'balanceVisibility');
+    });
+  }
+
+  void _updateSelectedText(String text) {
+    setState(() {
+      _selectedText = text;
     });
   }
 
@@ -155,18 +176,18 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Saldo Total',
-                            style: AppTextStyles.smallText.apply(color: AppColors.white),
+                            _selectedText,
+                            style: AppTextStyles.mediumText.apply(color: AppColors.white),
                           ),
                           FutureBuilder<double>(
-                            future: _fetchSaldo(),
+                            future: _selectedText == 'Saldo Total' ? futureSaldoTotal : futureCarteiraSaldo,
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
                                 return Text(
@@ -174,16 +195,43 @@ class _HomePageState extends State<HomePage> {
                                   style: AppTextStyles.smallText.apply(color: AppColors.white),
                                 );
                               } else {
+                                final double balance = snapshot.data ?? 0.00;
+
+                                // Formatar o saldo de forma personalizada
+                                final String formattedBalance = _isBalanceVisible
+                                    ? (balance < 0
+                                    ? '- R\$${NumberFormat("#,##0.00", "pt_BR").format(balance.abs())}'
+                                    : 'R\$${NumberFormat("#,##0.00", "pt_BR").format(balance)}')
+                                    : '****';
+
                                 return Text(
-                                  _isBalanceVisible
-                                      ? '\$${NumberFormat("#,##0.00", "pt_BR").format(snapshot.data) ?? "0.00"}'
-                                      : '****',
+                                  formattedBalance,
                                   style: AppTextStyles.smallText.apply(color: AppColors.white),
                                 );
                               }
                             },
                           ),
                         ],
+                      ),
+                      GestureDetector(
+                        child: PopupMenuButton(
+                          padding: EdgeInsets.zero,
+                          child: const Icon(
+                            Icons.arrow_drop_down,
+                            color: AppColors.white,
+                            size: 35,
+                          ),
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              child: const Text("Saldo Total",style: TextStyle(fontSize: 16)),
+                              onTap: () => _updateSelectedText("Saldo Total"),
+                            ),
+                            PopupMenuItem(
+                              child: const Text("Carteira",style: TextStyle(fontSize: 16)),
+                              onTap: () => _updateSelectedText("Carteira",),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -197,17 +245,29 @@ class _HomePageState extends State<HomePage> {
             right: 0,
             bottom: 0,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ultimas Movimentações',
-                      style: AppTextStyles.mediumText,
-                    ),
-                  ],
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 0.0), // Reduz ao mínimo o espaço abaixo do texto
+                  child: Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.purple, thickness: 2)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text(
+                          'Últimas Movimentações',
+                          style: TextStyle(
+                            color: AppColors.purpledarkOne,
+                            fontSize: 25,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: Colors.purple, thickness: 2)),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 20.0), // Pequeno espaçamento entre o título e os cards
                 Expanded(
                   child: FutureBuilder<List<Movimentacao>>(
                     future: futureMovi,
@@ -218,6 +278,7 @@ class _HomePageState extends State<HomePage> {
                           return Center(child: Text('Nenhuma movimentação encontrada'));
                         }
                         return ListView.builder(
+                          padding: EdgeInsets.zero, // Remove qualquer padding extra
                           itemCount: movis.length < 5 ? movis.length : 5,
                           itemBuilder: (context, index) {
                             final movi = movis[index];
@@ -230,7 +291,6 @@ class _HomePageState extends State<HomePage> {
                           },
                         );
                       } else if (snapshot.hasError) {
-                        print(snapshot.error);
                         return Center(child: Text('Erro ao carregar movimentações'));
                       }
                       return Center(child: CircularProgressIndicator());
@@ -245,3 +305,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+

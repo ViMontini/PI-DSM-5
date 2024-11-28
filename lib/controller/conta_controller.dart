@@ -1,10 +1,18 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:despesa_digital/controller/real.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-
 import '../database/conta_db.dart';
+import '../database/database_service.dart';
 import '../model/conta.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
+import '../utils/moeda_formatter.dart';
+
+Real _real = Real();
+var connectivityResult = Connectivity().checkConnectivity();
+DatabaseService databaseService = DatabaseService();
 
 class AdicionarContaPage extends StatefulWidget {
 
@@ -32,8 +40,12 @@ class _AdicionarContaPageState extends State<AdicionarContaPage> {
             ),
             TextField(
               controller: _valorController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: 'Valor'),
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly, // Permite apenas números e ponto decimal
+                MoedaTextInputFormatter(), // Permite apenas números e ponto decimal
+              ],
             ),
           ],
         ),
@@ -43,19 +55,50 @@ class _AdicionarContaPageState extends State<AdicionarContaPage> {
           onPressed: () async {
             // Obtendo os valores dos campos de texto
             String titulo = _tituloController.text;
-            double valor = double.parse(_valorController.text);
+            String valorTexto = _valorController.text;
 
-            // Criando o novo gasto no banco de dados
-            await ContaDB().create(
-              titulo: titulo,
-              valor: valor,
-            );
-            // Fechando o AlertDialog após adicionar a conta
-            widget.onAdd(); // Chama o callback para atualizar a lista
-            Navigator.of(context).pop(true);
+            // Verificar se o título foi inserido
+            if (titulo.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o título da conta.')),
+              );
+              return;
+            }
+
+            try {
+              // Remove o prefixo "R$" e outros caracteres não numéricos
+              String valorLimpo = valorTexto.replaceAll(RegExp(r'[^\d,]'), '');
+              print(valorTexto);
+              print(valorLimpo);
+
+              // Parse do valor
+              double valor = _real.parseValor(valorLimpo);
+
+              // Criando o novo gasto no banco de dados (sem await)
+              ContaDB().create(
+                titulo: titulo,
+                valor: valor,
+              );
+
+              if (connectivityResult != ConnectivityResult.none) {
+                // Faz a sincronização se estiver online
+                await databaseService.syncContaToFB();
+              } else {
+              }
+
+              // Fechando o AlertDialog após adicionar a conta
+              widget.onAdd(); // Chama o callback para atualizar a lista
+              Navigator.of(context).pop(true);
+            } catch (e) {
+              print('Erro ao adicionar a conta: $e');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Erro ao adicionar a conta. Verifique os valores inseridos.')),
+              );
+            }
           },
           child: Text('Adicionar'),
         ),
+
         TextButton(
           onPressed: () {
             Navigator.of(context).pop(false);
@@ -109,19 +152,12 @@ class ContaController {
               ),
               actions: <Widget>[
                 TextButton(
-                  onPressed: () async {
-                    // Chamar a função de excluir meta e atualizar a lista de metas
-                    await _contaDB.delete(conta.id);
-                    // Fechar a caixa de diálogo
-                    Navigator.of(context).pop();
-                    // Atualizar a lista de metas na página
-                    atualizarGastos();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Conta excluída com sucesso!')),
-                    );
+                  onPressed: () {
+                    excluirConta(context, conta, atualizarGastos);
                   },
                   child: Text('Excluir'),
                 ),
+
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop(); // Fechar a caixa de diálogo
@@ -210,4 +246,52 @@ class ContaController {
       ),
     );
   }
+
+  void excluirConta(BuildContext context, Conta conta, VoidCallback atualizarGastos) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Excluir Conta'),
+          content: Text(
+            'Você tem certeza que deseja excluir a conta "${conta.titulo}"? Essa ação não poderá ser desfeita.',
+          ),
+          actions: <Widget>[
+
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Fecha o modal antes de iniciar a exclusão
+                try {
+                  // Chama o método de exclusão da conta
+                  ContaDB().delete(conta.id);
+
+                  // Atualiza a lista de contas
+                  atualizarGastos();
+
+                  // Exibe mensagem de sucesso
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Conta "${conta.titulo}" excluída com sucesso!')),
+                  );
+                } catch (e) {
+                  // Exibe mensagem de erro em caso de falha
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao excluir a conta: $e')),
+                  );
+                }
+              },
+              child: Text('Excluir'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fecha o modal de confirmação
+              },
+              child: Text('Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
 }

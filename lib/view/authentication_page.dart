@@ -1,13 +1,18 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_signin_button/button_list.dart';
+import 'package:flutter_signin_button/button_view.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // Importando Google Sign-In
+import '../controller/auth_service.dart';
+import '../controller/main_navigator.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
-import '../widget/fingerprint_auth_widget.dart';
-import '../widget/password_auth_widget.dart';
-import '../widget/pattern_auth_widget.dart';
-import '../widget/pin_auth_widget.dart';
-
-enum AuthMethod { password, pattern, fingerprint, pin }
+import 'google_auth.dart';
+import 'google_password.dart';
+import 'registration_page.dart';
+import 'about_page.dart'; // Importando a página AboutPage
 
 class AuthenticationPage extends StatefulWidget {
   @override
@@ -15,84 +20,182 @@ class AuthenticationPage extends StatefulWidget {
 }
 
 class _AuthenticationPageState extends State<AuthenticationPage> {
-  AuthMethod? _selectedMethod;
+  final AuthService _authService = AuthService();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  int _logoTapCount = 0; // Contador de cliques na logo
+  Timer? _tapResetTimer;
+
+  Future<void> _loginWithGoogle() async {
+    try {
+      final UserCredential? userCredential = await _authService.signInWithGoogle(context);
+      final user = userCredential?.user;
+
+      if (user != null) {
+        String email = user.email ?? 'Sem email';
+        String username = user.displayName ?? 'Sem Nome';
+
+        bool userExists = await _authService.userExists(email);
+
+        if (!userExists) {
+          await _authService.registerNewGoogleUser(
+            email: email,
+            username: username,
+            googleId: user.uid,
+            profilePictureUrl: user.photoURL,
+          );
+
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => GoogleCreatePasswordPage(email: email, username: username),
+            ),
+          );
+        } else {
+          bool hasPassword = await _authService.hasPassword(email);
+
+          if (!hasPassword) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => GoogleCreatePasswordPage(email: email, username: username),
+              ),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => GoogleInsertPasswordPage(email: email, username: username, profilePictureUrl: user.photoURL),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao realizar login com Google: $e')),
+      );
+    }
+  }
+
+  void _onLogoTapped() {
+    setState(() {
+      _logoTapCount++;
+    });
+
+    if (_logoTapCount == 3) {
+      _tapResetTimer?.cancel();
+      _logoTapCount = 0;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => AboutPage()),
+      );
+    } else {
+      _tapResetTimer?.cancel();
+      _tapResetTimer = Timer(Duration(seconds: 2), () {
+        setState(() {
+          _logoTapCount = 0;
+        });
+      });
+    }
+  }
 
   @override
-  void initState() {
-    super.initState();
-    _loadSelectedMethod();
-  }
-
-  Future<void> _loadSelectedMethod() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? method = prefs.getString('auth_method');
-    setState(() {
-      _selectedMethod = AuthMethod.values.firstWhere(
-            (e) => e.toString() == method,
-        orElse: () => AuthMethod.password,
-      );
-    });
-  }
-
-  Future<void> _onAuthenticated(int userId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('user_id', userId);
-    Navigator.of(context).pushReplacementNamed('/home');
+  void dispose() {
+    _tapResetTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_selectedMethod == null) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
       body: Column(
-        children: <Widget>[
-          Container(
-            color: AppColors.purpledarkOne,
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 60.0),
-            child: Center(
-              child: Text(
-                'Autenticação',
-                style: AppTextStyles.mediumText.apply(color: AppColors.white),
-              ),
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: 120), // Cabeçalho maior
+                Text(
+                  'Autenticação',
+                  style: AppTextStyles.mediumText.apply(color: AppColors.purpledarkOne),
+                ),
+                SizedBox(height: 40),
+                // Campo de email
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: TextField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16),
+
+                // Campo de senha
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: TextField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: 'Senha',
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
+                  ),
+                ),
+                SizedBox(height: 24),
+
+                // Botão de login
+                ElevatedButton(
+                  onPressed: () async {
+                    String email = _emailController.text;
+                    String password = _passwordController.text;
+
+                    bool success = await _authService.signInWithEmailAndPassword(email, password);
+
+                    if (success) {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (context) => MainNavigator()),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Falha na autenticação. Verifique suas credenciais.')),
+                      );
+                    }
+                  },
+                  child: Text('Entrar'),
+                ),
+                SizedBox(height: 24),
+
+                // Botão de login com Google
+                SignInButton(
+                  Buttons.Google,
+                  text: "Logar com o Google",
+                  onPressed: _loginWithGoogle,
+                ),
+                SizedBox(height: 16),
+
+                // Mensagem
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'Não tem uma conta? Faça o primeiro login utilizando o botão do Google acima',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  _buildAuthWidget(),
-                  Spacer(),
-                  Image.asset('assets/images/logo1.png', width: 150, height: 150),
-                ],
-              ),
+          GestureDetector(
+            onTap: _onLogoTapped,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Image.asset('assets/images/logo1.png', width: 200, height: 200),
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildAuthWidget() {
-    switch (_selectedMethod) {
-      case AuthMethod.password:
-        return PasswordAuthWidget(onAuthenticated: _onAuthenticated);
-      case AuthMethod.pattern:
-        return PatternAuthWidget(onAuthenticated: _onAuthenticated);
-      case AuthMethod.fingerprint:
-        return FingerprintAuthWidget(onAuthenticated: _onAuthenticated);
-      case AuthMethod.pin:
-        return PinAuthWidget(onAuthenticated: _onAuthenticated);
-      default:
-        return Container();
-    }
   }
 }

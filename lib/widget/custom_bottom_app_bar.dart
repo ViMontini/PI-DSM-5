@@ -13,7 +13,7 @@ class CustomBottomAppBar extends StatefulWidget {
     required this.children,
     required this.currentIndex,
     required this.onTap,
-  })  : assert(children.length == 5, 'children.length must be 4'),
+  })  : assert(children.length == 6, 'children.length must be 4'),
         super(key: key);
 
   @override

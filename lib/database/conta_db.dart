@@ -12,13 +12,14 @@ class ContaDB {
     "id" INTEGER NOT NULL, 
     "titulo" TEXT NOT NULL,
     "valor" REAL NOT NULL,
+    "status_sync" INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY ("id" autoincrement)
     );""");
   }
 
-  Future<int> create({required String titulo, required double valor}) async {
+  void create({required String titulo, required double valor}) async {
     final database = await DatabaseService().database;
-    return await database.rawInsert(
+    await database.rawInsert(
       '''INSERT INTO $tableName (titulo, valor) VALUES (?, ?)''',
       [titulo, valor],
     );
@@ -37,9 +38,9 @@ class ContaDB {
     return Conta.fromSqfliteDatabase(contas.first);
   }
 
-  Future<int> update({required int id, String? titulo, double? valor}) async {
+  void update({required int id, String? titulo, double? valor}) async {
     final database = await DatabaseService().database;
-    return await database.update(
+     await database.update(
       tableName,
       {
         if (titulo != null) 'titulo': titulo,
@@ -52,7 +53,7 @@ class ContaDB {
     );
   }
 
-  Future<void> delete(int id) async {
+  void delete(int id) async {
     final database = await DatabaseService().database;
     await database.rawDelete('''DELETE FROM $tableName WHERE id = ? ''', [id]);
   }
@@ -60,16 +61,15 @@ class ContaDB {
   Future<bool> isPaymentMadeThisMonth(int contaId) async {
     final database = await DatabaseService().database;
 
-    // Obtém o primeiro e o último dia do mês atual
     DateTime now = DateTime.now();
     String firstDayOfMonth = DateFormat('yyyy-MM-01').format(now);
     String lastDayOfMonth = DateFormat('yyyy-MM-${DateTime(now.year, now.month + 1, 0).day}').format(now);
 
-    // Consulta para verificar se há um pagamento neste mês para a conta específica
+    // Consulta apenas movimentações não estornadas
     List<Map<String, dynamic>> result = await database.rawQuery('''
-      SELECT * FROM movimentacoes
-      WHERE conta_id = ? AND tipo = ? AND data BETWEEN ? AND ?
-    ''', [contaId, 3, firstDayOfMonth, lastDayOfMonth]);
+    SELECT * FROM movimentacao
+    WHERE conta_id = ? AND tipo = ? AND data BETWEEN ? AND ? AND estornado = 0
+  ''', [contaId, 3, firstDayOfMonth, lastDayOfMonth]);
 
     return result.isNotEmpty;
   }
@@ -81,7 +81,7 @@ class ContaDB {
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
 
     final result = await database.rawQuery(
-      '''SELECT data FROM movimentacoes WHERE conta_id = ? AND data >= ? AND data <= ? ORDER BY data DESC LIMIT 1''',
+      '''SELECT data FROM movimentacao WHERE conta_id = ? AND estornado = 0 AND data >= ? AND data <= ? ORDER BY data DESC LIMIT 1''',
       [id, firstDayOfMonth.toIso8601String(), lastDayOfMonth.toIso8601String()],
     );
 
@@ -97,5 +97,24 @@ class ContaDB {
       };
     }
   }
+
+  Future<List<Conta>> fetchPendingContasForMonth() async {
+    final database = await DatabaseService().database;
+    final now = DateTime.now();
+    final firstDayOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0).toIso8601String();
+
+    final result = await database.rawQuery('''
+    SELECT * FROM conta
+    WHERE id NOT IN (
+      SELECT conta_id FROM movimentacao
+      WHERE DATE(data) BETWEEN DATE(?) AND DATE(?)
+      AND conta_id IS NOT NULL
+    )
+  ''', [firstDayOfMonth, lastDayOfMonth]);
+
+    return result.map((row) => Conta.fromSqfliteDatabase(row)).toList();
+  }
+
 
 }

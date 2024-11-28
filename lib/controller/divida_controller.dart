@@ -1,9 +1,21 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:despesa_digital/controller/real.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../database/database_service.dart';
 import '../database/divida_db.dart';
 import '../model/divida.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import 'package:intl/intl.dart';
+
+import '../utils/moeda_formatter.dart';
+
+Real _real = Real();
+var connectivityResult = Connectivity().checkConnectivity();
+
+DatabaseService databaseService = DatabaseService();
+
 
 class AdicionarDividaPage extends StatefulWidget {
   final VoidCallback onAdd;
@@ -53,14 +65,28 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
   // Método para calcular o valor de cada parcela
   void _calcularValorParcela() {
     if (_valorTotController.text.isNotEmpty && _numParController.text.isNotEmpty) {
-      double valorTotal = double.parse(_valorTotController.text);
+      // Remove o prefixo "R$" e outros caracteres não numéricos
+      String valorLimpo = _valorTotController.text.replaceAll(RegExp(r'[^\d,]'), '');
+
+      // Substitui a vírgula por ponto para facilitar a conversão para double
+      valorLimpo = valorLimpo.replaceAll(',', '.');
+
+      // Converte para double
+      double valorTotal = double.parse(valorLimpo);
+
+      // Converte o número de parcelas
       int numParcelas = int.parse(_numParController.text);
+
+      // Calcula o valor de cada parcela
       _valorParcela = valorTotal / numParcelas;
-      _calcularDataVencimento(); // Atualiza a data de vencimento sempre que o número de parcelas mudar
+
+      // Atualiza a data de vencimento sempre que o número de parcelas mudar
+      _calcularDataVencimento();
     } else {
       _valorParcela = 0.0;
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -75,8 +101,12 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
             ),
             TextField(
               controller: _valorTotController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: 'Valor Total'),
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly, // Permite apenas números e ponto decimal
+                MoedaTextInputFormatter(), // Permite apenas números e ponto decimal
+              ],
               onChanged: (_) => _calcularValorParcela(),
             ),
             ListTile(
@@ -95,8 +125,11 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
             ),
             TextField(
               controller: _numParController,
-              keyboardType: TextInputType.numberWithOptions(decimal: false),
+              keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: 'Número de Parcelas'),
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'^[0-9]*?[0-9]*$')), // Permite apenas números e ponto decimal
+              ],
               onChanged: (_) => _calcularValorParcela(),
             ),
             Text(_valorParcela > 0 ? 'Valor de cada parcela: R\$${_valorParcela.toStringAsFixed(2)}' : ''),
@@ -106,30 +139,110 @@ class _AdicionarDividaPageState extends State<AdicionarDividaPage> {
       actions: <Widget>[
         TextButton(
           onPressed: () async {
+            // Obtendo os valores dos campos de texto e data selecionada
             String titulo = _tituloController.text;
-            double valor_total = double.parse(_valorTotController.text);
+            String valorTotalTexto = _valorTotController.text;
+            String numParcelasTexto = _numParController.text;
             String data_inicio = DateFormat('yyyy-MM-dd').format(_dataInicio);
             String data_venc = DateFormat('yyyy-MM-dd').format(_dataVenc);
-            int num_parcela = int.parse(_numParController.text);
 
-            DateTime hoje = DateTime.now();
-            int status = (hoje.isAfter(_dataInicio) && hoje.isBefore(_dataVenc)) ? 1 : 0;
+            // Verificar se o título, valor total e número de parcelas foram inseridos
+            if (titulo.isEmpty && valorTotalTexto.isEmpty && numParcelasTexto.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o título, o valor total e o número de parcelas.')),
+              );
+              return;
+            }
 
-            await DividaDB().create(
-              titulo: titulo,
-              valor_total: valor_total,
-              data_inicio: data_inicio,
-              data_vencimento: data_venc,
-              num_parcela: num_parcela,
-              num_parcela_paga: 0,
-              valor_parcela: _valorParcela, // Passa o valor calculado da parcela aqui
-              status: status,
-            );
-            // Fechando o AlertDialog após adicionar a dívida
-            widget.onAdd(); // Chama o callback para atualizar a lista
-            Navigator.of(context).pop(true);
+            // Verificar se o título, valor total foram inseridos
+            if (titulo.isEmpty && valorTotalTexto.isEmpty ) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o título, o valor total.')),
+              );
+              return;
+            }
+
+            // Verificar se o valor total e número de parcelas foram inseridos
+            if (valorTotalTexto.isEmpty && numParcelasTexto.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o valor total e o número de parcelas.')),
+              );
+              return;
+            }
+
+            // Verificar se o título e número de parcelas foram inseridos
+            if (titulo.isEmpty  && numParcelasTexto.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o título e o número de parcelas.')),
+              );
+              return;
+            }
+
+            // Verificar se o título foi inserido
+            if (titulo.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o título.')),
+              );
+              return;
+            }
+
+            // Verificar se o valor total foi inserido
+            if (valorTotalTexto.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o valor total.')),
+              );
+              return;
+            }
+
+            // Verificar se o número de parcelas foi inserido
+            if (numParcelasTexto.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o número de parcelas.')),
+              );
+              return;
+            }
+
+            try {
+              // Remove o prefixo "R$" e outros caracteres não numéricos
+              String valorLimpo = valorTotalTexto.replaceAll(RegExp(r'[^\d,]'), '');
+              // Parse de valores numéricos
+              double valor_total = _real.parseValor(valorLimpo);
+              int num_parcela = int.parse(numParcelasTexto);
+
+
+              // Criando a nova dívida no banco de dados
+              DividaDB().create(
+                titulo: titulo,
+                valor_total: valor_total,
+                data_inicio: data_inicio,
+                data_vencimento: data_venc,
+                num_parcela: num_parcela,
+                num_parcela_paga: 0,
+                valor_parcela: _valorParcela, // Passa o valor calculado da parcela aqui
+                status: 0,
+              );
+              if (connectivityResult != ConnectivityResult.none) {
+                // Faz a sincronização se estiver online
+                await databaseService.syncDividaToFB();
+              } else {
+              }
+              // Fechando o AlertDialog após adicionar a dívida
+              widget.onAdd(); // Chama o callback para atualizar a lista
+              Navigator.of(context).pop(true);
+            } catch (e) {
+              print('Erro ao adicionar a dívida: $e');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Erro ao adicionar a dívida. Verifique os valores inseridos.')),
+              );
+            }
           },
           child: Text('Adicionar'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+          },
+          child: Text('Cancelar'),
         ),
       ],
     );
@@ -173,47 +286,15 @@ class DividaController {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text('Excluir Dívida'),
-                      content: Text('Você tem certeza que deseja excluir essa dívida? O saldo não retornará automaticamente, apenas excluindo as movimentações ligadas a essas dívida.'),
-                      actions: <Widget>[
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop(); // Fechar o alerta de confirmação
-                          },
-                          child: Text('Cancelar'),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            // Chamar a função de excluir movimentação e atualizar a lista de movimentações
-                            await _dividaDB.delete(divida.id);
-                            // Fechar o alerta de confirmação
-                            Navigator.of(context).pop();
-                            // Fechar o alerta de detalhes
-                            Navigator.of(context).pop();
-                            // Atualizar a lista de movimentações na página
-                            onDelete();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Dívida excluída com sucesso!')),
-                            );
-                          },
-                          child: Text('Excluir'),
-                        ),
-                      ],
-                    );
-                  },
-                );
+                Navigator.of(context).pop(); // Fechar o alerta de confirmação
               },
-              child: Text('Excluir'),
+              child: Text('Cancelar'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Fechar a caixa de diálogo
+                excluirDivida(context, divida, onDelete);
               },
-              child: Text('Fechar'),
+              child: Text('Excluir'),
             ),
           ],
         );
@@ -309,4 +390,51 @@ class DividaController {
       ),
     );
   }
+
+  void excluirDivida(BuildContext context, Divida divida, VoidCallback atualizarDividas) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Excluir Dívida'),
+          content: Text(
+            'Você tem certeza que deseja excluir a dívida "${divida.titulo}"? Todo o saldo pago será retornado ao saldo total.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fecha o modal de confirmação
+              },
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Fecha o modal antes de iniciar a exclusão
+                try {
+                  // Chama o método de exclusão da dívida
+                  DividaDB().delete(divida.id);
+
+                  // Atualiza a lista de dívidas
+                  atualizarDividas();
+
+                  // Exibe mensagem de sucesso
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Dívida "${divida.titulo}" excluída com sucesso!')),
+                  );
+                } catch (e) {
+                  // Exibe mensagem de erro em caso de falha
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao excluir a dívida: $e')),
+                  );
+                }
+              },
+              child: Text('Excluir'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
 }

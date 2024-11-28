@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../controller/main_navigator.dart';
-import 'home_page_view.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});

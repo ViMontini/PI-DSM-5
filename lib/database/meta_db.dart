@@ -5,7 +5,7 @@ import '../model/meta.dart';
 import 'database_service.dart';
 
 class MetaDB{
-  final tableName = 'metas';
+  final tableName = 'meta';
 
   Future<void> createTable(Database database) async {
     await database.execute("""CREATE TABLE IF NOT EXISTS $tableName (
@@ -15,13 +15,14 @@ class MetaDB{
     "valor_total" REAL NOT NULL,
     "valor_guardado" REAL NOT NULL DEFAULT 0, 
     "data_limite" TEXT DEFAULT (strftime('%d/%m/%Y', 'now')),
+    "status_sync" INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY ("id" autoincrement)
     );""");
   }
 
-  Future<int> create({required String titulo, String? descricao, required double valor_total, String? data_limite}) async {
+  void create({required String titulo, String? descricao, required double valor_total, String? data_limite}) async {
     final database = await DatabaseService().database;
-    return await database.rawInsert(
+     await database.rawInsert(
       '''INSERT INTO $tableName (titulo, descricao, valor_total, data_limite) VALUES (?, ?, ?, ?)''',
       [titulo, descricao, valor_total, data_limite],
     );
@@ -40,16 +41,16 @@ class MetaDB{
     return Meta.fromSqfliteDatabase(meta.first);
   }
 
-  Future<int> update({required int id, String? titulo, String? descricao, double? valor_total, double? valor_guardado, DateFormat? data_limite}) async {
+  void update({required int id, String? titulo, String? descricao, double? valor_total, double? valor_guardado, DateFormat? data_limite}) async {
     final database = await DatabaseService().database;
-    return await database.update(
+    await database.update(
       tableName,
       {
         if (titulo != null) 'titulo': titulo,
         'descricao': descricao,
         'valor_total': valor_total,
         'valor_guardado': valor_guardado,
-        'data_limite': data_limite,
+        'data_limite': data_limite?.format(DateTime.now()),  // Formatando a data
       },
       where: 'id = ?',
       conflictAlgorithm: ConflictAlgorithm.rollback,
@@ -57,9 +58,20 @@ class MetaDB{
     );
   }
 
-  Future<void> delete(int id) async {
+  void delete(int id) async {
     final database = await DatabaseService().database;
     await database.rawDelete('''DELETE FROM $tableName WHERE id = ? ''', [id]);
   }
+
+  Future<void> deleteMeta(Database database) async {
+    await database.execute("""
+  CREATE TRIGGER retornar_saldo_meta_del AFTER DELETE ON meta
+  BEGIN
+    UPDATE saldo
+    SET saldo = saldo + OLD.valor_guardado, status_sync = 0;
+  END;
+  """);
+  }
+
 
 }

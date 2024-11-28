@@ -48,9 +48,9 @@ class _MoviPageState extends State<MoviPage> {
     });
   }
 
-  void _applyFilters(DateTime startDate, DateTime endDate, String orderBy) {
+  void _applyFilters(DateTime startDate, DateTime endDate, List<int> selectedTypes) {
     setState(() {
-      futureMovi = widget.moviController.fetchFilteredMovis(startDate, endDate, orderBy);
+      futureMovi = widget.moviController.fetchFilteredMovis(startDate, endDate, selectedTypes);
     });
   }
 
@@ -74,15 +74,15 @@ class _MoviPageState extends State<MoviPage> {
                   bottomRight: Radius.elliptical(500, 30),
                 ),
               ),
-              height: 150.h,
+              height: 120.h,
             ),
           ),
           Positioned(
             left: 250.w,
             right: 250.w,
-            top: 80.h,
+            top: 60.h,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 150.w, vertical: 32.h),
+              padding: EdgeInsets.symmetric(horizontal: 150.w, vertical: 26.h),
               decoration: const BoxDecoration(
                 color: AppColors.purpledarkOne,
                 borderRadius: BorderRadius.all(Radius.circular(16.0)),
@@ -95,11 +95,14 @@ class _MoviPageState extends State<MoviPage> {
                     style: AppTextStyles.mediumText.apply(color: AppColors.white),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.filter_list, color: AppColors.white, size: 35),
+                    icon: const Icon(Icons.filter_list, color: AppColors.white, size: 30),
                     onPressed: () {
-                      widget.moviController.openFilterModal(context, (DateTime startDate, DateTime endDate, String orderBy) {
-                        _applyFilters(startDate, endDate, orderBy);
-                      });
+                      widget.moviController.openFilterModal(
+                        context,
+                            (DateTime startDate, DateTime endDate, List<int> selectedTypes) {
+                          _applyFilters(startDate, endDate, selectedTypes);
+                        },
+                      );
                     },
                   ),
                 ],
@@ -107,7 +110,7 @@ class _MoviPageState extends State<MoviPage> {
             ),
           ),
           Positioned(
-            top: 195.h,
+            top: 165.h,
             left: 0,
             right: 0,
             bottom: 0,

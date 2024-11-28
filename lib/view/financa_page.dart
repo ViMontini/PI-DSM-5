@@ -83,13 +83,13 @@ class FinancaPageState extends State<FinancaPage> {
                   bottomRight: Radius.elliptical(500, 30),
                 ),
               ),
-              height: 150.h,
+              height: 120.h,
             ),
           ),
           Positioned(
             left: 250.w,
             right: 250.w,
-            top: 80.h,
+            top: 60.h,
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: 150.w,
@@ -126,18 +126,39 @@ class FinancaPageState extends State<FinancaPage> {
                           ),
                           itemBuilder: (context) => [
                             PopupMenuItem(
-                              height: 24.0,
-                              child: const Text("Metas"),
+                              height: 40.0, // Altura personalizada do item
+                              child: Container(
+                                padding: EdgeInsets.zero, // Remove o padding interno
+                                alignment: Alignment.centerLeft,
+                                child: const Text(
+                                  "Metas",
+                                  style: TextStyle(fontSize: 16), // Tamanho do texto ajustado
+                                ),
+                              ),
                               onTap: () => _updateSelectedText("Metas"),
                             ),
                             PopupMenuItem(
-                              height: 24.0,
-                              child: const Text("Dívidas"),
+                              height: 40.0,
+                              child: Container(
+                                padding: EdgeInsets.zero, // Remove o padding interno
+                                alignment: Alignment.centerLeft,
+                                child: const Text(
+                                  "Dívidas",
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ),
                               onTap: () => _updateSelectedText("Dívidas"),
                             ),
                             PopupMenuItem(
-                              height: 24.0,
-                              child: const Text("Contas Fixas"),
+                              height: 40.0,
+                              child: Container(
+                                padding: EdgeInsets.zero, // Remove o padding interno
+                                alignment: Alignment.centerLeft,
+                                child: const Text(
+                                  "Contas Fixas",
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ),
                               onTap: () => _updateSelectedText("Contas Fixas"),
                             ),
                           ],
@@ -150,7 +171,7 @@ class FinancaPageState extends State<FinancaPage> {
             ),
           ),
           Positioned(
-            top: 180.h,
+            top: 165.h,
             left: 0,
             right: 0,
             bottom: 0,

@@ -3,7 +3,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 class GeminiService {
   final GenerativeModel _model = GenerativeModel(
     model: 'gemini-1.5-flash-latest', // Atualize para o modelo correto se necessário
-    apiKey: 'AIzaSyCU40NL8BLy7pQmL5iBpK_wRCrOUM5ZjDY', // Substitua pela sua chave de API
+    apiKey: 'AIzaSyCh-f-dnEzvhmllTo-Cfb_X713lCvPB16k', // Substitua pela sua chave de API
   );
 
   final List<String> categories = [

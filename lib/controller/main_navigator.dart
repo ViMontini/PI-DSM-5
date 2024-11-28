@@ -1,5 +1,6 @@
 import 'package:despesa_digital/view/user_page.dart';
 import 'package:flutter/material.dart';
+import '../view/chat_page.dart';
 import '../view/financa_page.dart';
 import '../view/home_page.dart';
 import '../view/movi_page.dart';
@@ -39,7 +40,7 @@ class _MainNavigatorState extends State<MainNavigator> {
   }
 
   void _onBottomNavTapped(int index) {
-    if (index < 5) {
+    if (index < 6) {
       _pageController.jumpToPage(index);
     }
   }
@@ -52,7 +53,7 @@ class _MainNavigatorState extends State<MainNavigator> {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             ListTile(
-              leading: Icon(Icons.add),
+              leading: Icon(Icons.currency_exchange),
               title: Text('Adicionar Movimentação'),
               onTap: () {
                 Navigator.pop(context);
@@ -60,24 +61,6 @@ class _MainNavigatorState extends State<MainNavigator> {
                   context: context,
                   builder: (BuildContext context) {
                     return AdicionarMoviPage(
-                      onSave: () {
-                        _moviController.refreshMovis!();
-                        _financaPageKey.currentState?.refreshData();
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.savings),
-              title: Text('Guardar saldo'),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return GuardarSaldo(
                       onSave: () {
                         _moviController.refreshMovis!();
                         _financaPageKey.currentState?.refreshData();
@@ -106,7 +89,7 @@ class _MainNavigatorState extends State<MainNavigator> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.money_off),
+              leading: Icon(Icons.shopping_cart),
               title: Text('Pagar Dívida'),
               onTap: () {
                 Navigator.pop(context);
@@ -114,6 +97,42 @@ class _MainNavigatorState extends State<MainNavigator> {
                   context: context,
                   builder: (BuildContext context) {
                     return PagarDivida(
+                      onSave: () {
+                        _moviController.refreshMovis!();
+                        _financaPageKey.currentState?.refreshData();
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.savings),
+              title: Text('Meta'),
+              onTap: () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return MetaMoviPage(
+                      onSave: () {
+                        _moviController.refreshMovis!();
+                        _financaPageKey.currentState?.refreshData();
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.wallet),
+              title: Text('Carteira'),
+              onTap: () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return CarteiraMoviPage(
                       onSave: () {
                         _moviController.refreshMovis!();
                         _financaPageKey.currentState?.refreshData();
@@ -158,6 +177,14 @@ class _MainNavigatorState extends State<MainNavigator> {
             },
           );
           break;
+        case 'Carteira':
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AdicionarContaPage(onAdd: _financaPageKey.currentState!.refreshData);
+            },
+          );
+          break;
       }
     } else {
       print('Floating Action Button Pressed for other page');
@@ -183,7 +210,8 @@ class _MainNavigatorState extends State<MainNavigator> {
             },
           ),
           const RelatorioPage(),
-          UserPage(), // Adicionando UserPage aqui
+          ChatPage(),
+          UserPage()
         ],
       ),
       floatingActionButton: (_currentIndex == 1 || _currentIndex == 2)
@@ -216,6 +244,11 @@ class _MainNavigatorState extends State<MainNavigator> {
             label: 'relatorio',
             primaryIcon: Icons.analytics,
             secondaryIcon: Icons.analytics_outlined,
+          ),
+          CustomBottomAppBarItem(
+            label: 'chat',  // Adicionando o botão de chat
+            primaryIcon: Icons.chat,
+            secondaryIcon: Icons.chat_bubble_outline,
           ),
           CustomBottomAppBarItem(
             label: 'user',

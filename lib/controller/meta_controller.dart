@@ -1,4 +1,8 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:despesa_digital/controller/real.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../database/database_service.dart';
 import '../database/meta_db.dart';
 import 'package:intl/intl.dart';
 import '../model/meta.dart';
@@ -6,6 +10,11 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
+import '../utils/moeda_formatter.dart';
+
+Real _real = Real();
+var connectivityResult = Connectivity().checkConnectivity();
+DatabaseService databaseService = DatabaseService();
 
 class AdicionarMetaPage extends StatefulWidget {
 
@@ -54,8 +63,12 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
             ),
             TextField(
               controller: _valorController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: 'Valor Total'),
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly, // Permite apenas números e ponto decimal
+                MoedaTextInputFormatter(), // Permite apenas números e ponto decimal
+              ],
             ),
             ListTile(
               title: Text('Data Limite'),
@@ -71,19 +84,61 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
             // Obtendo os valores dos campos de texto e data selecionada
             String titulo = _tituloController.text;
             String descricao = _descricaoController.text;
-            double valorTotal = double.parse(_valorController.text);
+            String valorTotalTexto = _valorController.text;
             String dataLimite = DateFormat('yyyy-MM-dd').format(_dataLimite); // Use o formato desejado aqui
 
-            // Criando a nova meta no banco de dados
-            await MetaDB().create(
-              titulo: titulo,
-              descricao: descricao,
-              valor_total: valorTotal,
-              data_limite: dataLimite,
-            );
-            // Fechando o AlertDialog após adicionar a meta
-            widget.onAdd(); // Chama o callback para atualizar a lista
-            Navigator.of(context).pop(true);
+            // Verificar se título e valor total foram inseridos
+            if (titulo.isEmpty && valorTotalTexto.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o título e o valor total.')),
+              );
+              return;
+            }
+
+            // Verificar se o título foi inserido
+            if (titulo.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o título.')),
+              );
+              return;
+            }
+
+            // Verificar se o valor total foi inserido
+            if (valorTotalTexto.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, insira o valor total.')),
+              );
+              return;
+            }
+
+            try {
+              // Remove o prefixo "R$" e outros caracteres não numéricos
+              String valorLimpo = valorTotalTexto.replaceAll(RegExp(r'[^\d,]'), '');
+              double valorTotal = _real.parseValor(valorLimpo);
+
+              // Criando a nova meta no banco de dados
+              MetaDB().create(
+                titulo: titulo,
+                descricao: descricao,
+                valor_total: valorTotal,
+                data_limite: dataLimite,
+              );
+
+              if (connectivityResult != ConnectivityResult.none) {
+                // Faz a sincronização se estiver online
+                await databaseService.syncMetaToFB();
+              } else {
+              }
+
+              // Fechando o AlertDialog após adicionar a meta
+              widget.onAdd(); // Chama o callback para atualizar a lista
+              Navigator.of(context).pop(true);
+            } catch (e) {
+              print('Erro ao adicionar a meta: $e');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Erro ao adicionar a meta. Verifique os valores inseridos.')),
+              );
+            }
           },
           child: Text('Adicionar'),
         ),
@@ -93,6 +148,7 @@ class _AdicionarMetaPageState extends State<AdicionarMetaPage> {
           },
           child: Text('Cancelar'),
         ),
+
       ],
     );
   }
@@ -138,19 +194,12 @@ class MetaController {
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () async {
-                // Chamar a função de excluir meta e atualizar a lista de metas
-                await _metaDB.delete(meta.id);
-                // Fechar a caixa de diálogo
-                Navigator.of(context).pop();
-                // Atualizar a lista de metas na página
-                atualizarMetas();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Meta excluída com sucesso!')),
-                );
+              onPressed: () {
+                excluirMeta(context, meta, atualizarMetas);
               },
               child: Text('Excluir'),
             ),
+
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Fechar a caixa de diálogo
@@ -220,6 +269,52 @@ class MetaController {
       ),
     );
   }
+
+  void excluirMeta(BuildContext context, Meta meta, VoidCallback atualizarMetas) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Excluir Meta'),
+          content: Text(
+            'Deseja realmente excluir a meta "${meta.titulo}"? Todo o saldo guardado será retornado ao saldo total.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Fecha o modal antes de iniciar a exclusão
+                try {
+                  // Exclui a meta
+                  MetaDB().delete(meta.id);
+
+                  // Atualiza a lista de metas
+                  atualizarMetas();
+
+                  // Exibe mensagem de sucesso
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Meta "${meta.titulo}" excluída com sucesso!')),
+                  );
+                } catch (e) {
+                  // Exibe mensagem de erro em caso de falha
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao excluir a meta: $e')),
+                  );
+                }
+              },
+              child: Text('Excluir'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Apenas fecha o modal
+              },
+              child: Text('Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
 }
 

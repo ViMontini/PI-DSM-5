@@ -22,12 +22,18 @@ class _PinAuthWidgetState extends State<PinAuthWidget> {
     int? userId = prefs.getInt('user_id');
     if (userId != null) {
       UserDB userDB = UserDB();
-      User user = await userDB.fetchById(userId);
-      if (user.pin == pin) {
-        await widget.onAuthenticated(userId);
+      User? user = await userDB.fetchUserById(userId); // Permite que seja nulo
+      if (user != null) { // Verifica se o usuário foi encontrado
+        if (user.pin == pin) {
+          await widget.onAuthenticated(userId);
+        } else {
+          setState(() {
+            _error = 'PIN incorreto';
+          });
+        }
       } else {
         setState(() {
-          _error = 'PIN incorreto';
+          _error = 'Usuário não encontrado';
         });
       }
     } else {
